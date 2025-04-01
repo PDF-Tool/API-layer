@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\PDF-tool\PDF-generator-API\MyAvaloniaApp.csproj" />
+    <ProjectReference Include="..\..\..\..\Desktop\PDF-Tool_logic\Logic-layer\CanonProject\CanonProject.csproj" />
   </ItemGroup>
 
 </Project>
