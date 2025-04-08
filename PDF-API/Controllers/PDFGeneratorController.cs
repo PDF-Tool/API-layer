@@ -7,119 +7,104 @@ namespace PDF_API.Controllers
     [Route("[controller]")]
     public class PDFGeneratorController : ControllerBase
     {
+        private enum ByteFormats
+        {
+            Gigabyte,
+            Megabyte,
+        };
 
-        // private PDFGenerator PdfController = new PDFGenerator();
+        private string? UsedByteFormat;
 
-        // private enum ByteFormats
-        // {
-        //     Gigabyte,
-        //     Megabyte,
-        // };
+        private int? AmountOfBytes;
 
+        public class RequestModel
+        {
+            public int? Pages { get; set; }
+            public int? MB { get; set; }
+            public int? GB { get; set; }
+            public int? Width { get; set; }
+            public int? Height { get; set; }
+            public int? Square { get; set; }
+            public string? Format { get; set; }
+        }
 
+        [Route("response")]
+        [HttpPost]
+        public IActionResult ResponseDocument([FromBody] RequestModel request)
+        {
+            try
+            {
+                int Pages;
+                if(!request.Pages.HasValue || request.Pages.Value < 1){
+                    Pages = 1;
+                }else{
+                    Pages = request.Pages.Value;
+                }
 
-        // private string? UsedByteFormat;
+                if (!DetermineUsedByteFormat(request.GB, request.MB, out AmountOfBytes, out UsedByteFormat))
+                {
+                    return BadRequest("No byte format specified");
+                }
 
-        // private int? AmountOfBytes;
+                if (request.Width.HasValue || request.Height.HasValue)
+                {
+                    return CheckWidthAndHeight(Pages, request.Width, request.Height, AmountOfBytes, UsedByteFormat);
+                }
 
-        // [Route(template: "response")]
-        // [HttpGet]
-        // public IActionResult ResponseDocument(
-        //     [FromQuery] int? Pages,
-        //     [FromQuery] int? MB,
-        //     [FromQuery] int? GB,
-        //     [FromQuery] int? Width,
-        //     [FromQuery] int? Height,
-        //     [FromQuery] int? Square,
-        //     [FromQuery] string? Format
-        // )
+                if (request.Square.HasValue)
+                {
+                    return Content($"{Pages} pages of {request.Square}mm² and {AmountOfBytes} {UsedByteFormat} each");
+                }
 
-        // {
-        //     try
-        //     {
-        //         if (!Pages.HasValue)
-        //         {
-        //             Pages = 1;
-        //         }
+                if (request.Format != null)
+                {
+                    return Content("Pages");
+                }
 
-        //         if (!DetermineUsedByteFormat(GB, MB, out AmountOfBytes, out UsedByteFormat))
-        //         {
-        //             Console.WriteLine("No byte format specified");
-        //             return BadRequest("No byte format specified");
-        //         }
+                return Content($"{Pages} pages of A4 format and {AmountOfBytes} {UsedByteFormat} each");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
 
-        //         if (Width.HasValue || Height.HasValue)
-        //         {
-        //             return CheckWidthAndHeight(Pages, Width, Height, AmountOfBytes, UsedByteFormat);
-        //         }
+        private bool DetermineUsedByteFormat(int? GB, int? MB, out int? AmountOfBytes, out string? UsedByteFormat)
+        {
+            if (GB.HasValue)
+            {
+                AmountOfBytes = GB;
+                UsedByteFormat = ByteFormats.Gigabyte.ToString();
+                return true;
+            }
+            else if (MB.HasValue)
+            {
+                AmountOfBytes = MB;
+                UsedByteFormat = ByteFormats.Megabyte.ToString();
+                return true;
+            }
+            else
+            {
+                AmountOfBytes = null;
+                UsedByteFormat = null;
+                return false;
+            }
+        }
 
-        //         if (Square.HasValue)
-        //         {
-        //             PdfController.GeneratePDF(Pages.Value, AmountOfBytes.Value, Square.Value, Square.Value);
-        //             Console.WriteLine($"{Pages} pages of {Square}mm2 and {AmountOfBytes} {UsedByteFormat} each");
-        //             return Content($"{Pages} pages of {Square}mm2 and {AmountOfBytes} {UsedByteFormat} each");
-        //         }
-
-        //         if (Format != null)
-        //         {
-        //             PdfController.GeneratePDF(Pages.Value, AmountOfBytes.Value, Format);
-        //             return Content("Pages");
-        //         }
-
-
-        //         PdfController.GeneratePDF(Pages.Value, AmountOfBytes.Value);
-        //         Console.WriteLine($"{Pages} pages of A4 format and {AmountOfBytes} {UsedByteFormat} each");
-        //         return Content($"{Pages} pages of A4 format and {AmountOfBytes} {UsedByteFormat} each");
-        //     }
-        //     catch (Exception ex)
-        //     {
-        //         Console.WriteLine(ex.Message);
-        //         return BadRequest(ex.Message);
-        //     }
-        // }
-
-        // private bool DetermineUsedByteFormat(int? GB, int? MB, out int? AmountOfBytes, out string? UsedByteFormat)
-        // {
-        //     if (GB.HasValue)
-        //     {
-        //         AmountOfBytes = GB;
-        //         UsedByteFormat = ByteFormats.Gigabyte.ToString();
-        //         return true;
-        //     }
-        //     else if (MB.HasValue)
-        //     {
-        //         AmountOfBytes = MB;
-        //         UsedByteFormat = ByteFormats.Megabyte.ToString();
-        //         return true;
-        //     }
-        //     else
-        //     {
-        //         AmountOfBytes = null;
-        //         UsedByteFormat = null;
-        //         return false;
-        //     }
-        // }
-
-        // private IActionResult CheckWidthAndHeight(int? Pages, int? Width, int? Height, int? AmountOfBytes, string? UsedByteFormat)
-        // {
-        //     if (Width.HasValue && !Height.HasValue)
-        //     {
-        //         Console.WriteLine("Width given but no height");
-        //         return BadRequest("Width given but no height");
-        //     }
-        //     else if (Height.HasValue && !Width.HasValue)
-        //     {
-        //         Console.WriteLine("Heigt given but no width");
-        //         return BadRequest("Heigt given but no width");
-        //     }
-        //     else
-        //     {
-        //         PdfController.GeneratePDF(Pages.Value, AmountOfBytes.Value, Width.Value, Height.Value);
-        //         Console.WriteLine($"{Pages} pages of {Width}x{Height}mm and {AmountOfBytes} {UsedByteFormat} each");
-        //         return Content($"{Pages} pages of {Width}x{Height}mm and {AmountOfBytes} {UsedByteFormat} each");
-        //     }
-        // }
-
-
+        private IActionResult CheckWidthAndHeight(int? Pages, int? Width, int? Height, int? AmountOfBytes, string? UsedByteFormat)
+        {
+            if (Width.HasValue && !Height.HasValue)
+            {
+                return BadRequest("Width given but no height");
+            }
+            else if (Height.HasValue && !Width.HasValue)
+            {
+                return BadRequest("Heigt given but no width");
+            }
+            else
+            {
+                return Content($"{Pages} pages of {Width}x{Height}mm and {AmountOfBytes} {UsedByteFormat} each");
+            }
+        }
     }
 }
