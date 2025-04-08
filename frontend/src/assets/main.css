@@ -1,6 +1,7 @@
 /* @import './base.css'; */
 @import 'tailwindcss';
 @plugin "@iconify/tailwind4";
+@plugin "tailwindcss-animate";
 
 :root {
   --background: oklch(1 0 0);
