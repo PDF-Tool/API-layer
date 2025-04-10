@@ -51,7 +51,8 @@ const savePath = ref('')
           <label class="w-full">Preset</label>
           <DropdownMenu class="w-full">
             <DropdownMenuTrigger as-child>
-              <Button class="select-none bg-transparent border-1 text-black justify-start hover:bg-transparent  w-full"> {{ currentPageFormat }}
+              <Button class="select-none bg-transparent border-1 text-black justify-start hover:bg-transparent  w-full">
+                {{ currentPageFormat }}
                 <span class="icon-[material-symbols--arrow-drop-down-rounded] text-xl"></span>
               </Button>
             </DropdownMenuTrigger>
@@ -100,7 +101,7 @@ const savePath = ref('')
         <div class="flex flex-col gap-2">
           <Label for="checkHost">Check host connection</Label>
           <div class="flex gap-2">
-            <Input id="checkHost" name="checkHost" type="text" class="pl-7 bg-background!" placeholder="Enter host address..." />
+            <Input id="checkHost" name="checkHost" type="text" placeholder="Enter host address..." />
             <Button>
               <span @click="checkHostConnection">Check</span>
             </Button>
