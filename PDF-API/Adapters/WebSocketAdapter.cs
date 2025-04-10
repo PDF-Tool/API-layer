@@ -1,7 +1,8 @@
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
-using System.Threading;
+using PDF_API.Models;
+using PDF_API.Services;
 
 namespace PDF_API.Adapters;
 
@@ -116,9 +117,21 @@ public class WebSocketAdapter : IConnectionAdapter
 
             switch (messageType)
             {
-                case "ChatMessage":
-                    var chatMessage = JsonSerializer.Deserialize<ChatMessage>(messageJson);
-                    return _messagingService.BroadcastMessage(chatMessage!);
+                case "ProcessProgress":
+                    var progressMessage = JsonSerializer.Deserialize<ProcessProgress>(messageJson);
+                    return _messagingService.BroadcastMessage(progressMessage!);
+
+                case "ProcessStarted":
+                    var startedMessage = JsonSerializer.Deserialize<ProcessStarted>(messageJson);
+                    return _messagingService.BroadcastMessage(startedMessage!);
+
+                case "ProcessCompleted":
+                    var completedMessage = JsonSerializer.Deserialize<ProcessCompleted>(messageJson);
+                    return _messagingService.BroadcastMessage(completedMessage!);
+
+                case "ProcessFailed":
+                    var failedMessage = JsonSerializer.Deserialize<ProcessFailed>(messageJson);
+                    return _messagingService.BroadcastMessage(failedMessage!);
 
                 case "PongMessage":
                     // Client responded to ping, connection is alive

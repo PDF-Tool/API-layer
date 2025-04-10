@@ -11,20 +11,20 @@ import type {
   ErrorMessage,
   PongMessage,
 } from '@/types/websockets'
-import { MessageType } from '@/enums/websockets'
+import { MessageType, SocketStatus } from '@/enums/websockets'
 
 export const useWebSocketStore = defineStore('websocket', () => {
   const socket = ref<WebSocket | null>(null)
-  const status = ref<ConnectionStatus>('disconnected')
+  const status = ref<ConnectionStatus>(SocketStatus.Disconnected)
   const messages = ref<ChatMessage[]>([])
   const users = ref<string[]>([])
   const username = ref('')
 
-  const isConnected = computed(() => status.value === 'connected')
+  const isConnected = computed(() => status.value === SocketStatus.Connected)
 
   function connect(name: string) {
     if (socket.value?.readyState === WebSocket.OPEN) {
-      return // Already connected
+      return
     }
 
     status.value = 'connecting'
@@ -35,13 +35,9 @@ export const useWebSocketStore = defineStore('websocket', () => {
 
     socket.value = new WebSocket(`${host}/ws?name=${encodeURIComponent(name)}`)
 
-    socket.value.onopen = () => {
-      status.value = 'connected'
-    }
+    socket.value.onopen = () => (status.value = SocketStatus.Connected)
 
-    socket.value.onclose = () => {
-      status.value = 'disconnected'
-    }
+    socket.value.onclose = () => (status.value = SocketStatus.Disconnected)
 
     socket.value.onmessage = (event) => {
       const data = JSON.parse(event.data)
@@ -56,17 +52,18 @@ export const useWebSocketStore = defineStore('websocket', () => {
           break
 
         case MessageType.UserConnected:
-          // A user connected
-          console.log(`User connected: ${(data as UserConnectedMessage).Name}`)
+          const connectedUser = (data as UserConnectedMessage).Name
+          if (!users.value.includes(connectedUser)) {
+            users.value = [...users.value, connectedUser]
+          }
           break
 
         case MessageType.UserDisconnected:
-          // A user disconnected
-          console.log(`User disconnected: ${(data as UserDisconnectedMessage).Name}`)
+          const disconnectedUser = (data as UserDisconnectedMessage).Name
+          users.value = users.value.filter((user) => user !== disconnectedUser)
           break
 
         case MessageType.History:
-          // Process history messages
           const historyData = data as HistoryMessage
           if (historyData.Messages) {
             const chatMessages = historyData.Messages.filter(
@@ -77,7 +74,6 @@ export const useWebSocketStore = defineStore('websocket', () => {
           break
 
         case MessageType.PingMessage:
-          // Respond to server ping with pong
           sendPong((data as PingMessage).Timestamp)
           break
 

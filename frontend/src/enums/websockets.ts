@@ -8,3 +8,11 @@ export enum MessageType {
   PingMessage = 'PingMessage',
   PongMessage = 'PongMessage',
 }
+
+export enum SocketStatus {
+  Connected = 'connected',
+  Disconnected = 'disconnected',
+  Connecting = 'connecting',
+  Disconnecting = 'disconnecting',
+  Error = 'error',
+}
