@@ -2,13 +2,11 @@
 import { useWebSocketStore } from '@/stores/webSocket'
 
 const store = useWebSocketStore()
-// defineProps<{
-//   msg: string
-// }>()
+
 </script>
 
 <template>
-  <div class="greetings">
-    <h1 class="green">{{ store.users }}</h1>
+  <div class="flex gap-2">
+    <div v-for="user in store.users" class="bg-primary p-1 px-2 rounded-md"> {{ user }}</div>
   </div>
 </template>

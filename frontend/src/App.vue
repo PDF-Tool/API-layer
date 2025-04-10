@@ -9,16 +9,16 @@ const websocketStore = useWebSocketStore()
 const isConnecting = ref(false)
 
 onMounted(() => {
-  websocketStore.connect("test" + Math.floor(Math.random() * 1000))
+  websocketStore.connect("Canon" + Math.floor(Math.random() * 1000))
   isConnecting.value = true
 })
 </script>
 
 <template>
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <header class="pb-8">
+    <header class="pb-8 flex justify-between items-center">
       <img alt="Vue logo" src="@/assets/canon.svg" width="190" height="125" />
-      <!-- <users-bar /> -->
+      <users-bar />
     </header>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
       <div class="w-full">

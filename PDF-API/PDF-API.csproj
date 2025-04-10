@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\Desktop\PDF-Tool_logic\Logic-layer\CanonProject\CanonProject.csproj" />
+    <!-- <ProjectReference Include="..\..\..\..\Desktop\PDF-Tool_logic\Logic-layer\CanonProject\CanonProject.csproj" /> -->
   </ItemGroup>
 
 </Project>
