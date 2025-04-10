@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useWebSocketStore } from '@/stores/webSocket'
+import { useWebSocketStore } from '@/stores/webSocketStore'
 
 const store = useWebSocketStore()
 

@@ -7,4 +7,6 @@ export function cn(...inputs: ClassValue[]) {
 
 export const fileSizeFormats = ['MB', 'GB'] as const
 
+export const metrics = ['mm', 'cm']
+
 export type FileSizeFormat = (typeof fileSizeFormats)[number]

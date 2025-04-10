@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
-import { useWebSocketStore } from '@/stores/webSocket'
+import { useWebSocketStore } from '@/stores/webSocketStore'
 import { ref, onMounted } from 'vue'
 import UsersBar from '@/components/UsersBar.vue'
 import ProgressContainer from './components/ProgressContainer.vue'
+import { Toaster } from 'vue-sonner'
 
 const websocketStore = useWebSocketStore()
 const isConnecting = ref(false)
@@ -15,6 +16,7 @@ onMounted(() => {
 </script>
 
 <template>
+  <Toaster richColors />
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <header class="pb-8 flex justify-between items-center">
       <img alt="Vue logo" src="@/assets/canon.svg" width="190" height="125" />
