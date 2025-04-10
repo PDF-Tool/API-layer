@@ -2,8 +2,9 @@ using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
 using PDF_API.Adapters;
+using PDF_API.Models;
 
-namespace PDF_API;
+namespace PDF_API.Services;
 
 public class MessagingService : IAsyncDisposable
 {
@@ -12,6 +13,8 @@ public class MessagingService : IAsyncDisposable
     private readonly ConcurrentDictionary<string, IConnectionAdapter> Connections = new();
     private readonly ConcurrentQueue<Message> History = new();
     private readonly ILogger<MessagingService> _logger;
+
+    private readonly ConcurrentDictionary<string, ProcessStarted> ActiveProcesses = new();
 
     public MessagingService(ILogger<MessagingService> logger)
     {
@@ -29,7 +32,22 @@ public class MessagingService : IAsyncDisposable
         var everyoneElse = Connections.Where(x => x.Key != name).Select(x => x.Value);
         await BroadcastMessage(userConnected, everyoneElse);
 
-        await SendMessage(connection, new History(History.TakeLast(100)));
+        if (ActiveProcesses.Count > 0)
+        {
+            var activeProcessMessages = new List<Message>();
+
+            foreach (var process in ActiveProcesses.Values)
+            {
+                activeProcessMessages.Add(process);
+            }
+
+            await SendMessage(connection, new History(activeProcessMessages));
+        }
+        else
+        {
+            await SendMessage(connection, new History(Enumerable.Empty<Message>()));
+        }
+
         await SendMessage(connection, new UserList(Connections.Keys));
 
         return null;
@@ -83,6 +101,56 @@ public class MessagingService : IAsyncDisposable
         {
             await connection.SendMessage(message);
         }
+    }
+
+    public Task StartProcess(string processId, string processName, string initiator, Dictionary<string, object>? additionalData = null)
+    {
+        var processStarted = new ProcessStarted(processId, processName, initiator)
+        {
+            AdditionalData = additionalData
+        };
+
+        ActiveProcesses.TryAdd(processId, processStarted);
+        return BroadcastMessage(processStarted);
+    }
+
+    public Task UpdateProcessProgress(string processId, int percentComplete, string? currentStage = null, Dictionary<string, object>? additionalData = null)
+    {
+        var progress = new ProcessProgress(processId, percentComplete)
+        {
+            CurrentStage = currentStage,
+            AdditionalData = additionalData
+        };
+
+        return BroadcastMessage(progress);
+    }
+
+    public Task CompleteProcess(string processId, string? resultUrl = null, Dictionary<string, object>? additionalData = null)
+    {
+        if (ActiveProcesses.TryRemove(processId, out var processStarted))
+        {
+            var completed = new ProcessCompleted(processId, processStarted.StartTime)
+            {
+                ResultUrl = resultUrl,
+                AdditionalData = additionalData
+            };
+
+            return BroadcastMessage(completed);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task FailProcess(string processId, string errorMessage, Dictionary<string, object>? additionalData = null)
+    {
+        ActiveProcesses.TryRemove(processId, out _);
+
+        var failed = new ProcessFailed(processId, errorMessage)
+        {
+            AdditionalData = additionalData
+        };
+
+        return BroadcastMessage(failed);
     }
 
     public ValueTask DisposeAsync()
