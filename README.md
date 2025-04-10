@@ -14,16 +14,22 @@ cd frontend
 ### 3. Use the Correct Node Version
 
 ```bash
-nvm use 22.12.0
+nvm install lts
 ```
 
-### 4. Install Dependencies
+### 4. Use the Correct Node Version
+
+```bash
+nvm use lts
+```
+
+### 5. Install Dependencies
 
 ```bash
 npm install
 ```
 
-### 5. Run the Development Server
+### 6. Run the Development Server
 
 ```bash
 npm run dev
