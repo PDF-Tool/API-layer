@@ -101,7 +101,7 @@ namespace PDF_API.Controllers
         [HttpPost]
         public async Task<IActionResult> StartGenerationAsync([FromBody] RequestModel request)
         {
-            /*IActionResult validationResult = CleanseInputs(request);
+            IActionResult validationResult = CleanseInputs(request);
 
             if (validationResult != null)
             {
@@ -117,7 +117,7 @@ namespace PDF_API.Controllers
 
                 return BadRequest(new GenerateStartResponse { Status = false, Message = errorMessage });
             }
-            */
+            
 
             long estimatedSize = -1;
             try
@@ -212,25 +212,7 @@ namespace PDF_API.Controllers
             // Return the initial "Started" response immediately
             return Ok(startResponse);
         }
-    }
-}
-
-/*
-            if (request.Width.HasValue || request.Height.HasValue)
-            {
-                return CheckWidthAndHeight(Pages, request.Width, request.Height, MetricUnit, ByteUnit, Size);
-            }
-
-            if (request.Square.HasValue)
-            {
-                Square = CheckIfNullOrHigherThanZero(request.Square);
-                return Content($"{Pages} pages of {Square} {MetricUnit}² and {Size} {ByteUnit} each");
-            }
-
-            if (request.Format != null)
-            {
-                return Content("Pages"); // Placeholder? What should happen here?
-            }
+    
 
         private IActionResult CheckWidthAndHeight(int? Pages, int? Width, int? Height, string? MetricUnit, string? ByteUnit, int? Size)
         {
@@ -359,4 +341,4 @@ namespace PDF_API.Controllers
             return null;
         }
     }
-}*/
+}
