@@ -2,7 +2,7 @@ using SkiaSharp;
 using System;
 using System.IO;
 
-public class PdfContent
+public class PDFContent
 {
     // --- Size Estimation Constants ---
     // These values NEED TUNING based on testing!
@@ -21,7 +21,7 @@ public class PdfContent
     private byte[] _imageData;
     private int _targetContentBytes;
 
-    public PdfContent(int targetContentBytes)
+    public PDFContent(int targetContentBytes)
     {
         if (targetContentBytes <= 0)
         {

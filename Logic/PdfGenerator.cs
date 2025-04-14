@@ -6,9 +6,9 @@ using System.IO;
 using System.Diagnostics;
 using System.Linq;
 
-public class PdfGenerator
+public class PDFGenerator
 {
-    private List<PdfPage> _pdfPages;
+    private List<PDFPage> _pdfPages;
     private int _pageCount;
     private int _targetSizePerPage; // User's requested target per page
     private long _totalActualContentBytes; // Actual sizes of generated images
@@ -36,7 +36,7 @@ public class PdfGenerator
 
         for (int i = 0; i < _pageCount; i++)
         {
-            var page = new PdfPage(_targetSizePerPage);
+            var page = new PDFPage(_targetSizePerPage);
             _pdfPages.Add(page);
             _totalActualContentBytes += page.GetActualContentImageDataSize();
         }
@@ -137,10 +137,10 @@ public class PdfGenerator
             double difference = Math.Abs(_estimatedTotalSizeBytes - actualFileSize);
             double percentageDiff = (_estimatedTotalSizeBytes == 0) ? 100.0 : (difference / _estimatedTotalSizeBytes) * 100.0;
 
-            Console.WriteLine($" -> Final Size Comparison:");
+            //Console.WriteLine($" -> Final Size Comparison:");
             Console.WriteLine($"    Estimated: {_estimatedTotalSizeBytes / BytesInMB:F2} MB ({_estimatedTotalSizeBytes} bytes)");
             Console.WriteLine($"    Actual:    {actualFileSize / BytesInMB:F2} MB ({actualFileSize} bytes)");
-            Console.WriteLine($"    Difference: {difference / BytesInMB:F2} MB ({difference} bytes)");
+            //Console.WriteLine($"    Difference: {difference / BytesInMB:F2} MB ({difference} bytes)");
             Console.WriteLine($"    Accuracy:   {percentageDiff:F2}% deviation");
 
             if (percentageDiff <= 5.0)

@@ -1,11 +1,11 @@
 using System;
 
-public class PdfPage
+public class PDFPage
 {
     private PDFContent _content;
     private int _targetContentSize; // Target size contribution for generating this page's content
 
-    public PdfPage(int targetContentSizePerPage)
+    public PDFPage(int targetContentSizePerPage)
     {
         // Store the target size used for generation, although estimation uses actual size later
         _targetContentSize = Math.Max(1, targetContentSizePerPage); // Ensure at least 1
