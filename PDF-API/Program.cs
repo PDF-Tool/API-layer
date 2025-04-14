@@ -12,6 +12,7 @@ builder.Services.AddSingleton<ILogger<MessagingService>>(sp =>
     sp.GetRequiredService<ILoggerFactory>().CreateLogger<MessagingService>());
 builder.Services.AddSingleton<MessagingService>();
 builder.Services.AddTransient<WebSocketAdapter>();
+builder.Services.AddScoped<Logic.APIController>();
 
 builder.Services.AddCors(options =>
 {

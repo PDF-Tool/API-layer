@@ -75,9 +75,23 @@ namespace Logic
             };
         }
 
-        public long GetEstimatedSize()
-        {
-            return _pdfGenerator?.EstimatedTotalSizeBytes ?? 0;
-        }
+        public long EstimateSize(int pages, int size, string byteUnit)
+                {
+                    try
+                    {
+                        int sizeInBytes = ConvertToBytes(size, byteUnit);
+                        int targetPageSizeBytes = (pages > 0) ? sizeInBytes / pages : sizeInBytes;
+                        if (targetPageSizeBytes <= 0) targetPageSizeBytes = 1;
+
+                        var tempPdfGenerator = new PDFGenerator();
+                        tempPdfGenerator.Configure(pages, targetPageSizeBytes); // Configure calculates the estimate
+                        return tempPdfGenerator.EstimatedTotalSizeBytes;
+                    }
+                    catch(Exception ex)
+                    {
+                         Console.WriteLine($"Error during size estimation: {ex.Message}");
+                         return -1;
+                    }
+                }
     }
 }
