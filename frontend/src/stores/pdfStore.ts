@@ -11,7 +11,7 @@ export const usePdfStore = defineStore('counter', () => {
     width: undefined,
     height: undefined,
     format: 'A4',
-    metrixUnit: 'mm',
+    metricUnit: 'mm',
   })
 
   async function createPdf() {

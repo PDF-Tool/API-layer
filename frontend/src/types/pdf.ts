@@ -9,5 +9,6 @@ export interface FdfFields {
   square?: number
   width?: number
   height?: number
-  metrixUnit?: string
+  metricUnit?: string
+  
 }

@@ -86,12 +86,12 @@ const canCreatePdf = computed(() => {
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger as-child>
-                <Button class="min-w-[70px] select-none"> {{ formData.metrixUnit }}
+                <Button class="min-w-[70px] select-none"> {{ formData.matricUnit }}
                   <span class="icon-[material-symbols--arrow-drop-down-rounded] text-xl"></span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuRadioGroup v-model="formData.metrixUnit">
+                <DropdownMenuRadioGroup v-model="formData.matricUnit">
                   <DropdownMenuRadioItem v-for="metric in metrics" :key="metric" :value="metric">
                     {{ metric }}
                   </DropdownMenuRadioItem>
