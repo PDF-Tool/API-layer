@@ -26,7 +26,8 @@ const canCreatePdf = computed(() => {
         <div class="grid w-full items-center gap-2">
             <Label for="size">Size per page</Label>
             <div class="flex gap-2">
-                <Input type="number" v-model="formData.size" name="size" placeholder="Select image size per page..." />
+                <Input type="number" v-model="formData.sizeMin" name="size" placeholder="Select minimum size per page..." />
+                <Input type="number" v-model="formData.sizeMax" name="size" placeholder="Select maximum size per page..." />
                 <DropdownMenu>
                     <DropdownMenuTrigger as-child>
                         <Button class="min-w-[70px] select-none"> {{ formData.byteUnit }}
@@ -45,7 +46,10 @@ const canCreatePdf = computed(() => {
         </div>
         <div class="grid w-full items-center gap-2">
             <Label for="size">Amount of pages</Label>
-            <Input type="number" name="size" v-model="formData.pages" placeholder="Select amount of pages..." />
+            <div class="flex gap-2">
+                <Input type="number" name="size" v-model="formData.pagesMin" placeholder="Select minimum amount of pages..." />
+                <Input type="number" name="size" v-model="formData.pagesMax" placeholder="Select maximum amount of pages..." />
+            </div>
         </div>
         <div class="p-4 bg-primary rounded-lg border-input border shadow-sm flex flex-col gap-4">
             <div class="flex flex-col w-full items-center gap-2">
