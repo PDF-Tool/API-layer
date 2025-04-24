@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label'
 import { ref, computed } from 'vue'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import SingleForm from '@/components/forms/SingleForm.vue'
+import BatchForm from '@/components/forms/BatchForm.vue'
 
 import type { FdfFields } from '@/types/pdf'
 import { usePdfStore } from '@/stores/pdfStore'
@@ -45,7 +46,7 @@ const canCreatePdf = computed(() => {
           <SingleForm />
         </TabsContent>
         <TabsContent value="batch">
-          Change your password here.
+          <BatchForm />
         </TabsContent>
         <TabsContent value="random">
           <RandomForm />

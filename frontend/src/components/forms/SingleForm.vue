@@ -44,8 +44,8 @@ const canCreatePdf = computed(() => {
             </div>
         </div>
         <div class="grid w-full items-center gap-2">
-            <Label for="size">Amount of pages</Label>
-            <Input type="number" name="size" v-model="formData.pages" placeholder="Select amount of pages..." />
+            <Label for="pages">Amount of pages</Label>
+            <Input type="number" name="pages" v-model="formData.pages" placeholder="Select amount of pages..." />
         </div>
         <div class="p-4 bg-primary rounded-lg border-input border shadow-sm flex flex-col gap-4">
             <div class="flex flex-col w-full items-center gap-2">
