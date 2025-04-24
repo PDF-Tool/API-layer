@@ -4,6 +4,9 @@ using System.Threading.Tasks;
 using Logic;
 using PDF_API.Services;
 using System.Text.Json.Serialization;
+using Logic.Services;
+using PDF_API.Models.RequestModels;
+using PDF_API.Models.ResponseModels;
 
 namespace PDF_API.Controllers
 {
@@ -14,22 +17,13 @@ namespace PDF_API.Controllers
         private readonly APIController _logicApiController;
         private readonly MessagingService _messagingService;
 
-        public PDFGeneratorController(APIController logicApiController, MessagingService messagingService)
+        private readonly InputService _inputService;
+
+        public PDFGeneratorController(APIController logicApiController, MessagingService messagingService, InputService inputService)
         {
             _logicApiController = logicApiController ?? throw new ArgumentNullException(nameof(logicApiController));
             _messagingService = messagingService ?? throw new ArgumentNullException(nameof(messagingService));
-        }
-
-        private enum ByteUnits
-        {
-            GB,
-            MB
-        };
-
-        private enum MetricUnits
-        {
-            mm,
-            cm
+            _inputService = inputService;
         }
 
         private int Pages;
@@ -38,96 +32,32 @@ namespace PDF_API.Controllers
         private string? MetricUnit;
         private int Square;
 
-        //Request Model
-        public class RequestModel
-        {
-            public int? Pages { get; set; }
-            public int? Size { get; set; } // REQUIRED
-            public string? ByteUnit { get; set; } // REQUIRED
-            public int? Width { get; set; }
-            public int? Height { get; set; }
-            public string? MetricUnit { get; set; }
-            public int? Square { get; set; }
-            public string? Format { get; set; }
-            
-            public string? User { get; set; }
-        }
-
-        //Response Models
-        public class GenerateStartResponse
-        {
-            [JsonPropertyName("status")]
-            public bool Status { get; set; }
-
-            [JsonPropertyName("data")]
-            public GenerateStartData? Data { get; set; }
-
-            [JsonPropertyName("message")]
-            public string Message { get; set; } = string.Empty;
-        }
-
-        public class GenerateStartData
-        {
-            [JsonPropertyName("estimatedSize")]
-            public long EstimatedSize { get; set; }
-
-            [JsonPropertyName("byteUnit")]
-            public string ByteUnit { get; set; } = string.Empty;
-        }
-
-        public class GenerateResultResponse
-        {
-            [JsonPropertyName("status")]
-            public bool Status { get; set; }
-
-            [JsonPropertyName("data")]
-            public GenerateResultData? Data { get; set; }
-
-            [JsonPropertyName("message")]
-            public string Message { get; set; } = string.Empty;
-        }
-
-        public class GenerateResultData
-        {
-            [JsonPropertyName("actualSize")]
-            public long ActualSize { get; set; } 
-
-            [JsonPropertyName("byteUnit")]
-            public string ByteUnit { get; set; } = string.Empty;
-        }
-
-
         [Route("GenerateStart")]
         [HttpPost]
         public async Task<IActionResult> StartGenerationAsync([FromBody] RequestModel request)
         {
-            IActionResult validationResult = CleanseInputs(request);
+            var validationResult = _inputService.CleanseInputs(request.Pages, request.Size, request.ByteUnit, request.MetricUnit);
 
-            if (validationResult != null)
+            if (validationResult.ErrorMessage != null)
             {
-                string errorMessage = "Input validation failed.";
-                if (validationResult is BadRequestObjectResult badRequestResult && badRequestResult.Value is string msg)
-                {
-                    errorMessage = msg;
-                }
-                 else if (validationResult is ContentResult contentResult) // Handle simple BadRequest("message")
-                {
-                     errorMessage = contentResult.Content ?? errorMessage;
-                }
-
-                return BadRequest(new GenerateStartResponse { Status = false, Message = errorMessage });
+                return BadRequest(validationResult.ErrorMessage);
             }
-            
+            else
+            {
+                Pages = validationResult.Pages ?? 0;
+                Size = validationResult.Size ?? 0;
+                ByteUnit = validationResult.ByteUnit;
+            }
 
             long estimatedSize = -1;
             try
             {
-                estimatedSize = _logicApiController.EstimateSize(this.Pages, this.Size, this.ByteUnit!);
+                estimatedSize = _logicApiController.EstimateSize(Pages, Size, ByteUnit);
             }
             catch (Exception ex)
             {
-                 Console.WriteLine($"Error calling EstimateSize: {ex.Message}");
-                 return StatusCode(500, new GenerateStartResponse { Status = false, Message = "Failed to estimate PDF size." });
+                Console.WriteLine($"Error calling EstimateSize: {ex.Message}");
+                return StatusCode(500, new GenerateStartResponse { Status = false, Message = "Failed to estimate PDF size." });
             }
 
             if (estimatedSize < 0)
@@ -211,134 +141,6 @@ namespace PDF_API.Controllers
 
             // Return the initial "Started" response immediately
             return Ok(startResponse);
-        }
-    
-
-        private IActionResult CheckWidthAndHeight(int? Pages, int? Width, int? Height, string? MetricUnit, string? ByteUnit, int? Size)
-        {
-            if (Width.HasValue && !Height.HasValue)
-            {
-                return BadRequest("Width given but no height");
-            }
-            else if (Height.HasValue && !Width.HasValue)
-            {
-                return BadRequest("Heigt given but no width");
-            }
-            else
-            {
-                var checkedWidth = CheckIfNullOrHigherThanZero(Width);
-                var checkedHeight = CheckIfNullOrHigherThanZero(Height);
-
-
-                Console.WriteLine($"Debug: Width/Height specified ({checkedWidth}x{checkedHeight} {MetricUnit}). Not used in generation.");
-
-                return BadRequest(new GenerateStartResponse{ Status=false, Message="Width/Height specific generation not implemented in this flow yet."}); // Example response
-            }
-        }
-
-        private int CheckIfNullOrHigherThanZero(int? value)
-        {
-            if (value.HasValue && value.Value > 0)
-            {
-                return value.Value;
-            }
-            else
-            {
-                return 1; // Default to 1 page if not specified or invalid
-            }
-        }
-
-        private string? CheckByteUnit(string? byteUnitInput) // Changed name slightly to avoid conflict
-        {
-            if (string.IsNullOrWhiteSpace(byteUnitInput))
-            {
-                 return null;
-            }
-            else
-            {
-                string upperByteUnit = byteUnitInput.Trim().ToUpper();
-                if (Enum.IsDefined(typeof(ByteUnits), upperByteUnit) && !int.TryParse(upperByteUnit, out _))
-                {
-                    return upperByteUnit; // Valid unit
-                }
-                else
-                {
-                    return null; // Invalid unit
-                }
-            }
-        }
-
-        private string? CheckMetricUnit(string? metricUnitInput) // Changed name slightly
-        {
-            if (string.IsNullOrWhiteSpace(metricUnitInput))
-            {
-                return MetricUnits.mm.ToString(); // Default ok if optional
-            }
-            else
-            {
-                string lowerMetricUnit = metricUnitInput.Trim().ToLower();
-                if (Enum.IsDefined(typeof(MetricUnits), lowerMetricUnit) && !int.TryParse(lowerMetricUnit, out _))
-                {
-                    return lowerMetricUnit; // Valid
-                }
-                else
-                {
-                    return null; // Invalid
-                }
-            }
-        }
-
-        private IActionResult? CleanseInputs(RequestModel request) // Return type allows returning error results
-        {
-            Pages = CheckIfNullOrHigherThanZero(request.Pages);
-
-            if (!request.Size.HasValue)
-            {
-                return BadRequest("No size given"); // Simplified: returning string directly for now
-            }
-
-            Size = CheckIfNullOrHigherThanZero(request.Size);
-
-
-            var byteUnitResult = CheckByteUnit(request.ByteUnit);
-            if (byteUnitResult == null)
-            {
-                return BadRequest("Byte unit specified is invalid or missing, only MB and GB are allowed");
-            }
-            ByteUnit = byteUnitResult; 
-
-
-            var metricUnitResult = CheckMetricUnit(request.MetricUnit);
-            if (metricUnitResult == null)
-            {
-                return BadRequest("Metric unit specified is invalid, only mm and cm are allowed");
-            }
-            MetricUnit = metricUnitResult; 
-
-            if (request.Square.HasValue)
-            {
-                 this.Square = CheckIfNullOrHigherThanZero(request.Square);
-                 Console.WriteLine($"Debug: Square parameter provided ({this.Square}). Not used in generation.");
-            }
-
-             if (request.Format != null)
-             {
-                  Console.WriteLine($"Debug: Format parameter provided ({request.Format}). Not used in generation.");
-             }
-
-
-            if (request.Width.HasValue || request.Height.HasValue)
-            {
-                 if ((request.Width.HasValue && !request.Height.HasValue) || (!request.Width.HasValue && request.Height.HasValue))
-                 {
-                     return BadRequest("Both Width and Height must be provided together."); // Structured error
-                 }
-                  Console.WriteLine($"Debug: Width/Height parameters provided. Not used in generation.");
-                  // If valid Width/Height were provided, the original code returned Content().
-                  // Now, we just note them and proceed with page/size/byteunit generation.
-            }
-
-            return null;
         }
     }
 }

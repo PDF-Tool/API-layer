@@ -1,5 +1,6 @@
 using PDF_API.Adapters;
 using PDF_API.Services;
+using Logic.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +14,8 @@ builder.Services.AddSingleton<ILogger<MessagingService>>(sp =>
 builder.Services.AddSingleton<MessagingService>();
 builder.Services.AddTransient<WebSocketAdapter>();
 builder.Services.AddScoped<Logic.APIController>();
+builder.Services.AddScoped<InputService>();
+
 
 builder.Services.AddCors(options =>
 {

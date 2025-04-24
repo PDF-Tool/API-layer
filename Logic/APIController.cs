@@ -11,7 +11,7 @@ namespace Logic
             _pdfGenerator = new PDFGenerator();
         }
 
-        public long HandleRequest(int pages, int size, string byteUnit = "MB")
+        public long HandleRequest(int pages, int size, string byteUnit)
         {
             try
             {

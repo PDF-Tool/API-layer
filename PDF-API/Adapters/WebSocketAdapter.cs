@@ -1,7 +1,7 @@
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
-using PDF_API.Models;
+using PDF_API.Models.ResponseModels;
 using PDF_API.Services;
 
 namespace PDF_API.Adapters;
