@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using PDF_API.Adapters;
 using PDF_API.Models;
+using PDF_API.Models.ResponseModels;
 
 namespace PDF_API.Services;
 

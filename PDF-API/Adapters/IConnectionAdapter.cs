@@ -1,4 +1,4 @@
-using PDF_API.Models;
+using PDF_API.Models.ResponseModels;
 
 namespace PDF_API.Adapters;
 

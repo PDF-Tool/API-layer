@@ -1,174 +1,146 @@
-using System.Drawing;
 using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Threading.Tasks;
+using Logic;
+using PDF_API.Services;
+using System.Text.Json.Serialization;
+using Logic.Services;
+using PDF_API.Models.RequestModels;
+using PDF_API.Models.ResponseModels;
 
 namespace PDF_API.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("api/[controller]")]
     public class PDFGeneratorController : ControllerBase
     {
-        private enum ByteUnits
-        {
-            GB,
-            MB
-        };
+        private readonly APIController _logicApiController;
+        private readonly MessagingService _messagingService;
 
-        private enum MetricUnits
+        private readonly InputService _inputService;
+
+        public PDFGeneratorController(APIController logicApiController, MessagingService messagingService, InputService inputService)
         {
-            mm,
-            cm
+            _logicApiController = logicApiController ?? throw new ArgumentNullException(nameof(logicApiController));
+            _messagingService = messagingService ?? throw new ArgumentNullException(nameof(messagingService));
+            _inputService = inputService;
         }
 
         private int Pages;
-
         private int Size;
+        private string? ByteUnit;
+        private string? MetricUnit;
         private int Square;
-        private string ByteUnit;
-        private string MetricUnit;
 
-        public class RequestModel
-        {
-            public int? Pages { get; set; }
-            public int? Size { get; set; }
-            public string? ByteUnit { get; set; }
-            public int? Width { get; set; }
-            public int? Height { get; set; }
-            public string? MetricUnit { get; set; }
-            public int? Square { get; set; }
-            public string? Format { get; set; }
-        }
-
-        [Route("GeneretePDF")]
+        [Route("GenerateStart")]
         [HttpPost]
-        public IActionResult ResponseDocument([FromBody] RequestModel request)
+        public async Task<IActionResult> StartGenerationAsync([FromBody] RequestModel request)
         {
+            var validationResult = _inputService.CleanseInputs(request.Pages, request.Size, request.ByteUnit, request.MetricUnit);
+
+            if (validationResult.ErrorMessage != null)
+            {
+                return BadRequest(validationResult.ErrorMessage);
+            }
+            else
+            {
+                Pages = validationResult.Pages ?? 0;
+                Size = validationResult.Size ?? 0;
+                ByteUnit = validationResult.ByteUnit;
+            }
+
+            long estimatedSize = -1;
             try
             {
-                IActionResult validationResult = CleanseInputs(request);
-                if (validationResult != null)
-                {
-                    return validationResult;
-                }
-
-                if (request.Width.HasValue || request.Height.HasValue)
-                {
-                    return CheckWidthAndHeight(Pages, request.Width, request.Height, MetricUnit, ByteUnit, Size);
-                }
-
-                if (request.Square.HasValue)
-                {
-                    Square = CheckIfNullOrHigherThanZero(request.Square);
-                    return Content($"{Pages} pages of {Square} {MetricUnit}² and {Size} {ByteUnit} each");
-                }
-
-                if (request.Format != null)
-                {
-                    return Content("Pages");
-                }
-
-                return Content($"{Pages} pages of A4 format and {Size} {ByteUnit} each");
+                estimatedSize = _logicApiController.EstimateSize(Pages, Size, ByteUnit);
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                Console.WriteLine($"Error calling EstimateSize: {ex.Message}");
+                return StatusCode(500, new GenerateStartResponse { Status = false, Message = "Failed to estimate PDF size." });
             }
-        }
-        private IActionResult CheckWidthAndHeight(int? Pages, int? Width, int? Height, string? MetricUnit, string? ByteUnit, int? Size)
-        {
-            if (Width.HasValue && !Height.HasValue)
-            {
-                return BadRequest("Width given but no height");
-            }
-            else if (Height.HasValue && !Width.HasValue)
-            {
-                return BadRequest("Heigt given but no width");
-            }
-            else
-            {
-                Width = CheckIfNullOrHigherThanZero(Width);
-                Height = CheckIfNullOrHigherThanZero(Height);
-                return Content($"{Pages} pages of {Width}x{Height} {MetricUnit} and {Size} {ByteUnit} each");
-            }
-        }
 
-        private int CheckIfNullOrHigherThanZero(int? value)
-        {
-            if (value.HasValue && value.Value > 0)
+            if (estimatedSize < 0)
             {
-                return value.Value;
+                return StatusCode(500, new GenerateStartResponse { Status = false, Message = "Estimation resulted in an invalid size." });
             }
-            else
-            {
-                return 1;
-            }
-        }
 
-        private string CheckByteUnit(string ByteUnit)
-        {
-            if (ByteUnit == null)
+
+            //Send Response to client
+            var startResponse = new GenerateStartResponse
             {
-                return ByteUnit = ByteUnits.MB.ToString();
-            }
-            else
-            {
-                ByteUnit = ByteUnit.ToUpper();
-                if (!Enum.IsDefined(typeof(ByteUnits), ByteUnit) || int.TryParse(ByteUnit, out _))
+                Status = true,
+                Data = new GenerateStartData
                 {
-                    return null;
-                }
-                else
+                    EstimatedSize = estimatedSize,
+                    ByteUnit = this.ByteUnit!
+                },
+                Message = "Started PDF Generation"
+            };
+
+            //Start Generation 
+            int pagesToGenerate = this.Pages;
+            int sizeToGenerate = this.Size;
+            string byteUnitForGeneration = this.ByteUnit!;
+            string processId = Guid.NewGuid().ToString();
+
+            // Start process notification
+            await _messagingService.StartProcess(processId, "PDF Generation", request.User ?? "Anonymous", new Dictionary<string, object>
+            {
+                { "pages", pagesToGenerate },
+                { "size", sizeToGenerate },
+                { "byteUnit", byteUnitForGeneration }
+            });
+
+            _ = Task.Run(async () => // Run background task
+            {
+                long actualSize = -1;
+                bool success = false;
+                string resultMessage;
+
+                try
                 {
-                    return ByteUnit;
-                }
-            }
-        }
+                    Console.WriteLine($"Background task started: {pagesToGenerate} pages, {sizeToGenerate} {byteUnitForGeneration}.");
 
-        private string CheckMetricUnit(string MetricUnit)
-        {
-            if (MetricUnit == null)
-            {
-                return MetricUnit = MetricUnits.mm.ToString();
-            }
-            else
-            {
-                MetricUnit = MetricUnit.ToLower();
-                if (!Enum.IsDefined(typeof(MetricUnits), MetricUnit) || int.TryParse(MetricUnit, out _))
+                    // Update progress
+                    await _messagingService.UpdateProcessProgress(processId, 25, "Estimating size");
+
+                    //Call the main logic
+                    actualSize = _logicApiController.HandleRequest(pagesToGenerate, sizeToGenerate, byteUnitForGeneration);
+
+                    if (actualSize >= 0)
+                    {
+                        success = true;
+                        resultMessage = "Successfully generated the PDF";
+                        Console.WriteLine($"Background task SUCCESS. Actual size: {actualSize} bytes.");
+
+                        // Update progress to 100% and complete
+                        await _messagingService.UpdateProcessProgress(processId, 100, "Completed");
+                        await _messagingService.CompleteProcess(processId, null, new Dictionary<string, object>
+                        {
+                            { "actualSize", actualSize },
+                            { "byteUnit", byteUnitForGeneration }
+                        });
+                    }
+                    else
+                    {
+                        resultMessage = "PDF generation failed in the logic layer.";
+                        Console.WriteLine($"Background task FAILED: HandleRequest returned {actualSize}.");
+                        await _messagingService.FailProcess(processId, resultMessage);
+                    }
+                }
+                catch (Exception ex)
                 {
-                    return null;
+                    Console.WriteLine($"Error during background PDF generation: {ex.ToString()}");
+                    resultMessage = $"An error occurred during PDF generation: {ex.Message}";
+                    actualSize = -1;
+                    success = false;
+                    await _messagingService.FailProcess(processId, resultMessage);
                 }
-                else
-                {
-                    return MetricUnit;
-                }
-            }
-        }
+            }); // End of Task.Run
 
-        private IActionResult CleanseInputs(RequestModel request)
-        {
-            Pages = CheckIfNullOrHigherThanZero(request.Pages);
-
-            if (!request.Size.HasValue)
-            {
-                return BadRequest("No size given");
-            }
-
-            Size = CheckIfNullOrHigherThanZero(request.Size);
-
-            var byteUnitResult = CheckByteUnit(request.ByteUnit);
-            if (byteUnitResult == null)
-            {
-                return BadRequest("Byte unit specified is invalid, only MB and GB are allowed");
-            }
-            ByteUnit = byteUnitResult;
-
-            var metricUnitResult = CheckMetricUnit(request.MetricUnit);
-            if (metricUnitResult == null)
-            {
-                return BadRequest("Metric unit specified is invalid, only mm and cm are allowed");
-            }
-            MetricUnit = metricUnitResult;
-
-            return null;
+            // Return the initial "Started" response immediately
+            return Ok(startResponse);
         }
     }
 }

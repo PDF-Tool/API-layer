@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace PDF_API.Models;
+namespace PDF_API.Models.ResponseModels;
 
 // Required for polymorphic deserialization
 [JsonDerivedType(typeof(ProcessStarted), typeDiscriminator: "ProcessStarted")]
