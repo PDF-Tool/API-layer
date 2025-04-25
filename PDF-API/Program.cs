@@ -1,6 +1,6 @@
 using PDF_API.Adapters;
 using PDF_API.Services;
-using Logic.Services;
+using Logic;
 
 var builder = WebApplication.CreateBuilder(args);
 

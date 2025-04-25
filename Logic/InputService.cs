@@ -1,4 +1,4 @@
-namespace Logic.Services;
+namespace Logic;
 
 public class InputService
 {

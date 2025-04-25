@@ -1,12 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
-using Logic;
 using PDF_API.Services;
 using System.Text.Json.Serialization;
-using Logic.Services;
 using PDF_API.Models.RequestModels;
 using PDF_API.Models.ResponseModels;
+using Logic;
 
 namespace PDF_API.Controllers
 {
@@ -17,9 +16,9 @@ namespace PDF_API.Controllers
         private readonly APIController _logicApiController;
         private readonly MessagingService _messagingService;
 
-        private readonly InputService _inputService;
+        private readonly Logic.InputService _inputService;
 
-        public PDFGeneratorController(APIController logicApiController, MessagingService messagingService, InputService inputService)
+        public PDFGeneratorController(APIController logicApiController, MessagingService messagingService, Logic.InputService inputService)
         {
             _logicApiController = logicApiController ?? throw new ArgumentNullException(nameof(logicApiController));
             _messagingService = messagingService ?? throw new ArgumentNullException(nameof(messagingService));
@@ -142,5 +141,12 @@ namespace PDF_API.Controllers
             // Return the initial "Started" response immediately
             return Ok(startResponse);
         }
+
+        //[Route("GenerateBatchStart")]
+        // [HttpPost]
+        // public async Task<IActionResult> StartBatchGenerationAsync([FromBody] RequestModel request)
+        // {
+
+        // }
     }
 }

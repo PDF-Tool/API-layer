@@ -5,7 +5,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
-
+namespace Logic;
 public class LprClient
 {
     private const int LprPort = 515;

@@ -1,5 +1,6 @@
 using System;
 
+namespace Logic;
 class RandomizerModel
 {
     private Random _random;
