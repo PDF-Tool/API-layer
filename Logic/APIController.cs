@@ -11,12 +11,11 @@ namespace Logic
             _pdfGenerator = new PDFGenerator();
         }
 
-        public long HandleRequest(int pages, int size, string byteUnit)
+        public long HandleRequest(int pages, int sizePerPage, string byteUnit)
         {
             try
             {
-                int sizeInBytes = ConvertToBytes(size, byteUnit);
-                int targetPageSizeBytes = (pages > 0) ? sizeInBytes / pages : sizeInBytes;
+                int targetPageSizeBytes = ConvertToBytes(sizePerPage, byteUnit);
                 _pdfGenerator.Configure(pages, targetPageSizeBytes);
                 long actualSize = _pdfGenerator.GenerateAndSavePDF();
                 return actualSize;
@@ -33,27 +32,23 @@ namespace Logic
             }
         }
 
-        public long[] HandleBatchRequest(int numberOfFiles, int pagesPerFile, int size, string byteUnit = "MB")
+        public long[] HandleBatchRequest(int numberOfFiles, int pagesPerFile, int sizePerPage, string byteUnit = "MB")
         {
-            if (numberOfFiles <= 0 || pagesPerFile <= 0 || size <= 0)
+            if (numberOfFiles <= 0 || pagesPerFile <= 0 || sizePerPage <= 0)
             {
                 Console.WriteLine("Error: All input values must be greater than zero.");
                 return Array.Empty<long>();
             }
 
-            int sizeInBytes = ConvertToBytes(size, byteUnit);
- 
-            // Calculate target size per page
-            int targetPageSizeBytes = sizeInBytes / pagesPerFile;
- 
+            int targetPageSizeBytes = ConvertToBytes(sizePerPage, byteUnit);
+
             Console.WriteLine($"\nStarting batch generation:");
             Console.WriteLine($" -> Files: {numberOfFiles}");
             Console.WriteLine($" -> Pages per file: {pagesPerFile}");
-            Console.WriteLine($" -> Target size per file: {sizeInBytes} bytes");
             Console.WriteLine($" -> Target size per page: {targetPageSizeBytes} bytes\n");
- 
+
             long[] actualSizes = new long[numberOfFiles];
- 
+
             for (int i = 0; i < numberOfFiles; i++)
             {
                 Console.WriteLine($"\n--- Generating PDF {i + 1}/{numberOfFiles} ---");
@@ -61,7 +56,7 @@ namespace Logic
                 _pdfGenerator.Configure(pagesPerFile, targetPageSizeBytes);
                 actualSizes[i] = _pdfGenerator.GenerateAndSavePDF();
             }
- 
+
             return actualSizes;
         }
 
@@ -76,23 +71,32 @@ namespace Logic
             };
         }
 
-        public long EstimateSize(int pages, int size, string byteUnit)
-                {
-                    try
-                    {
-                        int sizeInBytes = ConvertToBytes(size, byteUnit);
-                        int targetPageSizeBytes = (pages > 0) ? sizeInBytes / pages : sizeInBytes;
-                        if (targetPageSizeBytes <= 0) targetPageSizeBytes = 1;
+        public long EstimateSize(int pages, int sizePerPage, string byteUnit)
+        {
+            try
+            {
+                int targetPageSizeBytes = ConvertToBytes(sizePerPage, byteUnit);
+                if (targetPageSizeBytes <= 0) targetPageSizeBytes = 1;
 
-                        var tempPdfGenerator = new PDFGenerator();
-                        tempPdfGenerator.Configure(pages, targetPageSizeBytes); // Configure calculates the estimate
-                        return tempPdfGenerator.EstimatedTotalSizeBytes;
-                    }
-                    catch(Exception ex)
-                    {
-                         Console.WriteLine($"Error during size estimation: {ex.Message}");
-                         return -1;
-                    }
-                }
+                var tempPdfGenerator = new PDFGenerator();
+                tempPdfGenerator.Configure(pages, targetPageSizeBytes); // Configure calculates the estimate
+                return tempPdfGenerator.EstimatedTotalSizeBytes;
+            }
+            catch(Exception ex)
+            {
+                 Console.WriteLine($"Error during size estimation: {ex.Message}");
+                 return -1;
+            }
+        }
+
+        public double ConvertBytesToUnit(long bytes, string byteUnit)
+        {
+            return byteUnit.ToUpper() switch
+            {
+                "MB" => bytes / (1024.0 * 1024.0),
+                "GB" => bytes / (1024.0 * 1024.0 * 1024.0),
+                _ => bytes
+            };
+        }
     }
 }

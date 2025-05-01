@@ -172,12 +172,15 @@ namespace PDF_API.Controllers
                 return StatusCode(500, new GenerateStartResponse { Status = false, Message = "Estimation resulted in an invalid size." });
             }
 
+            // Convert estimated size to requested unit
+            double estimatedSizeConverted = _logicApiController.ConvertBytesToUnit(estimatedSize, byteUnit);
+
             var startResponse = new GenerateStartResponse
             {
                 Status = true,
                 Data = new GenerateStartData
                 {
-                    EstimatedSize = estimatedSize,
+                    EstimatedSize = (long)estimatedSizeConverted,
                     ByteUnit = byteUnit
                 },
                 Message = "Started PDF Generation"
@@ -203,9 +206,10 @@ namespace PDF_API.Controllers
                     {
                         resultMessage = "Successfully generated the PDF";
                         await _messagingService.UpdateProcessProgress(processId, 100, "Completed");
+                        double actualSizeConverted = _logicApiController.ConvertBytesToUnit(actualSize, byteUnit);
                         await _messagingService.CompleteProcess(processId, null, new Dictionary<string, object>
                         {
-                            { "actualSize", actualSize },
+                            { "actualSize", actualSizeConverted },
                             { "byteUnit", byteUnit }
                         });
                     }
@@ -265,13 +269,16 @@ namespace PDF_API.Controllers
                 return StatusCode(500, new PDF_API.Models.ResponseModels.BatchGenerateStartResponse { Status = false, Message = "Estimation resulted in an invalid size." });
             }
 
+            // Convert estimated size per file to requested unit
+            double estimatedSizePerFileConverted = _logicApiController.ConvertBytesToUnit(estimatedSizePerFile, byteUnit);
+
             // Send response to client
             var startResponse = new PDF_API.Models.ResponseModels.BatchGenerateStartResponse
             {
                 Status = true,
                 Data = new PDF_API.Models.ResponseModels.BatchGenerateStartData
                 {
-                    EstimatedSizePerFile = estimatedSizePerFile,
+                    EstimatedSizePerFile = (long)estimatedSizePerFileConverted,
                     ByteUnit = byteUnit,
                     NumberOfFiles = numberOfFiles,
                     PagesPerFile = pagesPerFile
@@ -301,9 +308,11 @@ namespace PDF_API.Controllers
                     {
                         resultMessage = "Successfully generated all PDFs in batch.";
                         await _messagingService.UpdateProcessProgress(processId, 100, "Completed");
+                        // Convert all actual sizes to requested unit
+                        double[] actualSizesConverted = actualSizes.Select(s => _logicApiController.ConvertBytesToUnit(s, byteUnit)).ToArray();
                         await _messagingService.CompleteProcess(processId, null, new Dictionary<string, object>
                         {
-                            { "actualSizes", actualSizes },
+                            { "actualSizes", actualSizesConverted },
                             { "byteUnit", byteUnit }
                         });
                     }

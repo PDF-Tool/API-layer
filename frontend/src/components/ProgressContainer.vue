@@ -47,7 +47,15 @@ const failed = computed(() =>
           <div>Duration: {{ p.completed?.Duration }}</div>
           <div v-if="p.completed?.AdditionalData">
             <div v-for="(val, key) in p.completed.AdditionalData" :key="key">
-              {{ key }}: {{ val }}
+              <template v-if="key === 'actualSize' || key === 'actualSizes'">
+                {{ key }}:
+                <span v-if="Array.isArray(val)">
+                  {{ val.map(v => Number(v).toFixed(2)).join(', ') }} {{ p.completed.AdditionalData.byteUnit || '' }}
+                </span>
+                <span v-else>
+                  {{ Number(val).toFixed(2) }} {{ p.completed.AdditionalData.byteUnit || '' }}
+                </span>
+              </template>
             </div>
           </div>
         </div>
