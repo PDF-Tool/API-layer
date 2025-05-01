@@ -16,7 +16,8 @@ namespace Logic
             try
             {
                 int sizeInBytes = ConvertToBytes(size, byteUnit);
-                _pdfGenerator.Configure(pages, sizeInBytes);
+                int targetPageSizeBytes = (pages > 0) ? sizeInBytes / pages : sizeInBytes;
+                _pdfGenerator.Configure(pages, targetPageSizeBytes);
                 long actualSize = _pdfGenerator.GenerateAndSavePDF();
                 return actualSize;
             }

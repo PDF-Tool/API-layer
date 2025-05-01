@@ -17,7 +17,7 @@ import { usePdfStore } from '@/stores/pdfStore'
 const { formData, createPdf } = usePdfStore()
 
 const canCreatePdf = computed(() => {
-    return formData.pages > 0 && formData.size > 0
+    return formData.pages > 0 && formData.sizePerPage > 0
 })
 </script>
 
@@ -26,7 +26,7 @@ const canCreatePdf = computed(() => {
         <div class="grid w-full items-center gap-2">
             <Label for="size">Size per page</Label>
             <div class="flex gap-2">
-                <Input type="number" v-model="formData.size" name="size" placeholder="Select image size per page..." />
+                <Input type="number" v-model="formData.sizePerPage" name="sizePerPage" placeholder="Select image size per page..." />
                 <DropdownMenu>
                     <DropdownMenuTrigger as-child>
                         <Button class="min-w-[70px] select-none"> {{ formData.byteUnit }}

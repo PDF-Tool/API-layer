@@ -1,13 +1,13 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import { makePdf } from '@/services/pdf-service'
-import type { FdfFields } from '@/types/pdf'
+import { makePdf, makeBatchPdf } from '@/services/pdf-service'
+import type { PdfFields, BatchPdfFields } from '@/types/pdf'
 import { useWebSocketStore } from '@/stores/webSocketStore'
 
 export const usePdfStore = defineStore('counter', () => {
-  const formData = ref<FdfFields>({
+  const formData = ref<PdfFields>({
     pages: 1,
-    size: 0,
+    sizePerPage: 0,
     byteUnit: 'MB',
     width: undefined,
     height: undefined,
@@ -15,11 +15,26 @@ export const usePdfStore = defineStore('counter', () => {
     metricsUnit: 'mm',
   })
 
+  const batchFormData = ref<BatchPdfFields>({
+    numberOfFiles: 1,
+    pagesPerFile: 1,
+    sizePerPage: 0,
+    byteUnit: 'MB',
+    metricUnit: 'mm',
+  })
+
+
   async function createPdf() {
     const ws = useWebSocketStore()
     const result = await makePdf({ ...formData.value, User: ws.username })
     return result
   }
 
-  return { createPdf, formData }
+  async function createBatchPdf() {
+    const ws = useWebSocketStore()
+    const result = await makeBatchPdf({ ...batchFormData.value, User: ws.username })
+    return result
+  }
+
+  return { createPdf, formData, createBatchPdf, batchFormData }
 })

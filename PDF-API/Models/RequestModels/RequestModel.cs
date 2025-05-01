@@ -3,7 +3,7 @@ namespace PDF_API.Models.RequestModels;
 public class RequestModel
 {
     public int? Pages { get; set; }
-    public int? Size { get; set; }
+    public int? SizePerPage { get; set; }
     public string? ByteUnit { get; set; }
     public int? Width { get; set; }
     public int? Height { get; set; }

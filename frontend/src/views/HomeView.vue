@@ -23,7 +23,7 @@ import RandomForm from '@/components/forms/RandomForm.vue'
 const { formData, createPdf } = usePdfStore()
 
 const canCreatePdf = computed(() => {
-  return formData.pages > 0 && formData.size > 0
+  return formData.pages > 0 && formData.sizePerPage > 0
 })
 </script>
 
