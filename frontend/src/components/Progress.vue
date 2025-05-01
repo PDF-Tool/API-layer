@@ -8,8 +8,12 @@ defineProps<{
 </script>
 
 <template>
-    <div class="flex gap-2  p-2 rounded-lg">
-        <span class="icon-[mdi--folder] text-accent text-6xl"></span>
+    <div class="flex gap-2 p-2 rounded-lg items-center">
+        <div class="flex items-center justify-center w-10 h-10">
+          <slot name="icon">
+            <span class="icon-[mdi--folder] text-accent text-6xl"></span>
+          </slot>
+        </div>
         <div class="flex flex-col flex-1 justify-center">
             <div class="flex items-center justify-between mb-1">
                 <span class="text-sm font-medium">{{ title }}</span>

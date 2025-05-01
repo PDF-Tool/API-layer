@@ -19,7 +19,7 @@ onMounted(() => {
   <Toaster richColors />
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <header class="pb-8 flex justify-between items-center">
-      <img alt="Vue logo" src="@/assets/canon.svg" width="190" height="125" />
+      <img alt="Canon logo" src="./assets/canon.svg" width="190" height="125" />
       <users-bar />
     </header>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">

@@ -7,6 +7,10 @@ export enum MessageType {
   Error = 'Error',
   PingMessage = 'PingMessage',
   PongMessage = 'PongMessage',
+  ProcessStarted = 'ProcessStarted',
+  ProcessProgress = 'ProcessProgress',
+  ProcessCompleted = 'ProcessCompleted',
+  ProcessFailed = 'ProcessFailed',
 }
 
 export enum SocketStatus {

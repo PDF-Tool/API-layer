@@ -50,6 +50,43 @@ export interface ErrorMessage extends BaseMessage {
   ErrorMessage: string
 }
 
+// Process-related messages
+export interface ProcessStartedMessage extends BaseMessage {
+  Type: MessageType.ProcessStarted
+  ProcessId: string
+  ProcessName: string
+  Initiator: string
+  StartTime: string
+  Status: string
+  AdditionalData?: Record<string, any>
+}
+
+export interface ProcessProgressMessage extends BaseMessage {
+  Type: MessageType.ProcessProgress
+  ProcessId: string
+  PercentComplete: number
+  Timestamp: string
+  CurrentStage?: string
+  AdditionalData?: Record<string, any>
+}
+
+export interface ProcessCompletedMessage extends BaseMessage {
+  Type: MessageType.ProcessCompleted
+  ProcessId: string
+  CompletionTime: string
+  Duration: string
+  ResultUrl?: string
+  AdditionalData?: Record<string, any>
+}
+
+export interface ProcessFailedMessage extends BaseMessage {
+  Type: MessageType.ProcessFailed
+  ProcessId: string
+  ErrorMessage: string
+  FailureTime: string
+  AdditionalData?: Record<string, any>
+}
+
 // Union type for all possible message types
 export type Message =
   | ChatMessage
@@ -60,3 +97,7 @@ export type Message =
   | PingMessage
   | PongMessage
   | ErrorMessage
+  | ProcessStartedMessage
+  | ProcessProgressMessage
+  | ProcessCompletedMessage
+  | ProcessFailedMessage

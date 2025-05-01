@@ -10,4 +10,5 @@ export interface FdfFields {
   width?: number
   height?: number
   metricsUnit?: string
+  User?: string
 }

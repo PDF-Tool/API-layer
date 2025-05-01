@@ -2,6 +2,7 @@ import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { makePdf } from '@/services/pdf-service'
 import type { FdfFields } from '@/types/pdf'
+import { useWebSocketStore } from '@/stores/webSocketStore'
 
 export const usePdfStore = defineStore('counter', () => {
   const formData = ref<FdfFields>({
@@ -15,7 +16,8 @@ export const usePdfStore = defineStore('counter', () => {
   })
 
   async function createPdf() {
-    const result = await makePdf(formData.value)
+    const ws = useWebSocketStore()
+    const result = await makePdf({ ...formData.value, User: ws.username })
     return result
   }
 

@@ -10,6 +10,11 @@ import type {
   UserDisconnectedMessage,
   ErrorMessage,
   PongMessage,
+  ProcessStartedMessage,
+  ProcessProgressMessage,
+  ProcessCompletedMessage,
+  ProcessFailedMessage,
+  Message,
 } from '@/types/websockets'
 import { MessageType, SocketStatus } from '@/enums/websockets'
 
@@ -19,6 +24,13 @@ export const useWebSocketStore = defineStore('websocket', () => {
   const messages = ref<ChatMessage[]>([])
   const users = ref<string[]>([])
   const username = ref('')
+
+  const processes = ref<Record<string, {
+    started?: ProcessStartedMessage,
+    progress?: ProcessProgressMessage,
+    completed?: ProcessCompletedMessage,
+    failed?: ProcessFailedMessage,
+  }>>({})
 
   const isConnected = computed(() => status.value === SocketStatus.Connected)
 
@@ -40,7 +52,7 @@ export const useWebSocketStore = defineStore('websocket', () => {
     socket.value.onclose = () => (status.value = SocketStatus.Disconnected)
 
     socket.value.onmessage = (event) => {
-      const data = JSON.parse(event.data)
+      const data: Message = JSON.parse(event.data)
 
       switch (data.Type) {
         case MessageType.ChatMessage:
@@ -80,6 +92,30 @@ export const useWebSocketStore = defineStore('websocket', () => {
         case MessageType.Error:
           console.error(`Server error: ${(data as ErrorMessage).ErrorMessage}`)
           break
+
+        case MessageType.ProcessStarted: {
+          const msg = data as ProcessStartedMessage
+          processes.value[msg.ProcessId] = { started: msg }
+          break
+        }
+        case MessageType.ProcessProgress: {
+          const msg = data as ProcessProgressMessage
+          if (!processes.value[msg.ProcessId]) processes.value[msg.ProcessId] = {}
+          processes.value[msg.ProcessId].progress = msg
+          break
+        }
+        case MessageType.ProcessCompleted: {
+          const msg = data as ProcessCompletedMessage
+          if (!processes.value[msg.ProcessId]) processes.value[msg.ProcessId] = {}
+          processes.value[msg.ProcessId].completed = msg
+          break
+        }
+        case MessageType.ProcessFailed: {
+          const msg = data as ProcessFailedMessage
+          if (!processes.value[msg.ProcessId]) processes.value[msg.ProcessId] = {}
+          processes.value[msg.ProcessId].failed = msg
+          break
+        }
 
         default:
           console.warn('Unknown message type:', data)
@@ -129,5 +165,6 @@ export const useWebSocketStore = defineStore('websocket', () => {
     messages,
     users,
     username,
+    processes,
   }
 })
