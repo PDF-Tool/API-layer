@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import { makePdf, makeBatchPdf } from '@/services/pdf-service'
+import { makePdf, makeBatchPdf, makeRandomPdf } from '@/services/pdf-service'
 import type { PdfFields, BatchPdfFields } from '@/types/pdf'
 import { useWebSocketStore } from '@/stores/webSocketStore'
 
@@ -36,5 +36,11 @@ export const usePdfStore = defineStore('counter', () => {
     return result
   }
 
-  return { createPdf, formData, createBatchPdf, batchFormData }
+  async function createRandomPdf(randomFields: any) {
+    const ws = useWebSocketStore()
+    const result = await makeRandomPdf({ ...randomFields, User: ws.username })
+    return result
+  }
+
+  return { createPdf, formData, createBatchPdf, batchFormData, createRandomPdf }
 })

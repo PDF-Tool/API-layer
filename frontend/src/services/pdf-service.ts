@@ -20,3 +20,12 @@ export async function makeBatchPdf(body: BatchPdfFields) {
     console.error(error)
   }
 }
+
+export async function makeRandomPdf(body: any) {
+  try {
+    const response = await api.post('/GenerateRandomStart', body)
+    return response
+  } catch (error) {
+    console.error(error)
+  }
+}

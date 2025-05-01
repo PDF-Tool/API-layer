@@ -331,5 +331,51 @@ namespace PDF_API.Controllers
 
             return Ok(startResponse);
         }
+
+
+        [Route("GenerateRandomStart")]
+        [HttpPost]
+        public async Task<IActionResult> StartRandomGenerationAsync([FromBody] RandomRequestModel request)
+        {
+            int sizeMin = request.SizeMin;
+            int sizeMax = request.SizeMax;
+            int pageMin = request.PageMin;
+            int pageMax = request.PageMax;
+            string mode = request.Mode ?? "single";
+            int numberOfFiles = request.NumberOfFiles ?? 1;
+            string byteUnit = request.ByteUnit ?? "MB";
+            string metricUnit = request.MetricUnit ?? "mm";
+            string user = request.User ?? "Anonymous";
+
+            var randomizer = new Logic.PDFRandomizer();
+            var (sizePerPage, pages) = randomizer.GenerateRandomValues(sizeMin, sizeMax, pageMin, pageMax);
+
+            if (mode == "batch")
+            {
+                var batchRequest = new Models.RequestModels.BatchRequestModel
+                {
+                    NumberOfFiles = numberOfFiles,
+                    PagesPerFile = pages,
+                    SizePerPage = sizePerPage,
+                    ByteUnit = byteUnit,
+                    MetricUnit = metricUnit,
+                    User = user
+                };
+                return await StartBatchGenerationAsync(batchRequest);
+            }
+            else
+            {
+                var singleRequest = new Models.RequestModels.RequestModel
+                {
+                    Pages = pages,
+                    SizePerPage = sizePerPage,
+                    ByteUnit = byteUnit,
+                    MetricUnit = metricUnit,
+                    Format = "A4",
+                    User = user
+                };
+                return await StartGenerationAsync(singleRequest);
+            }
+        }
     }
 }
