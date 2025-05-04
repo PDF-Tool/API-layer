@@ -1,13 +1,17 @@
 <script setup lang="ts">
+import { useLprStore } from '@/stores/lprStore'
 import { RouterLink, RouterView } from 'vue-router'
 import { useWebSocketStore } from '@/stores/webSocketStore'
 import { ref, onMounted } from 'vue'
 import UsersBar from '@/components/UsersBar.vue'
 import ProgressContainer from './components/ProgressContainer.vue'
+import PrinterStatus from './components/PrinterStatus.vue'
 import { Toaster } from 'vue-sonner'
 
 const websocketStore = useWebSocketStore()
 const isConnecting = ref(false)
+
+
 
 onMounted(() => {
   websocketStore.connect("Canon" + Math.floor(Math.random() * 1000))
@@ -28,6 +32,9 @@ onMounted(() => {
       </div>
       <div class="w-full">
         <ProgressContainer />
+      </div>
+      <div class="w-full">
+        <PrinterStatus />
       </div>
     </div>
   </main>

@@ -1,11 +1,15 @@
+// PDF-API/PDFGeneratorController.cs
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
 using PDF_API.Services;
-using System.Text.Json.Serialization;
 using PDF_API.Models.RequestModels;
 using PDF_API.Models.ResponseModels;
 using Logic;
+using System.IO;
+using System.Net.Mime;
+using Microsoft.Extensions.Configuration; // Required for IConfiguration
+using System.Linq; // Required for LINQ in batch response
 
 namespace PDF_API.Controllers
 {
@@ -15,342 +19,248 @@ namespace PDF_API.Controllers
     {
         private readonly APIController _logicApiController;
         private readonly MessagingService _messagingService;
-
         private readonly Logic.InputService _inputService;
+        private readonly IConfiguration _configuration; // Inject configuration
 
-        public PDFGeneratorController(APIController logicApiController, MessagingService messagingService, Logic.InputService inputService)
+        // LPR Settings Keys (match your appsettings.json)
+        private const string LprHostKey = "LprSettings:Host";
+        private const string LprQueueKey = "LprSettings:Queue";
+        private const string LprPortKey = "LprSettings:Port";
+
+
+        public PDFGeneratorController(
+            APIController logicApiController,
+            MessagingService messagingService,
+            Logic.InputService inputService,
+            IConfiguration configuration) // Add IConfiguration
         {
             _logicApiController = logicApiController ?? throw new ArgumentNullException(nameof(logicApiController));
             _messagingService = messagingService ?? throw new ArgumentNullException(nameof(messagingService));
-            _inputService = inputService;
+            _inputService = inputService ?? throw new ArgumentNullException(nameof(inputService));
+            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration)); // Store configuration
         }
 
-        private int Pages;
-        private int Size;
-        private string? ByteUnit;
-        private string? MetricUnit;
-        private int Square;
-
-        // [Route("GenerateStart")]
-        // [HttpPost]
-        // public async Task<IActionResult> StartGenerationAsync([FromBody] RequestModel request)
-        // {
-        //     var validationResult = _inputService.CleanseInputs(request.Pages, request.Size, request.ByteUnit, request.MetricUnit);
-        //
-        //     if (validationResult.ErrorMessage != null)
-        //     {
-        //         return BadRequest(validationResult.ErrorMessage);
-        //     }
-        //     else
-        //     {
-        //         Pages = validationResult.Pages ?? 0;
-        //         Size = validationResult.Size ?? 0;
-        //         ByteUnit = validationResult.ByteUnit;
-        //     }
-        //
-        //     long estimatedSize = -1;
-        //     try
-        //     {
-        //         estimatedSize = _logicApiController.EstimateSize(Pages, Size, ByteUnit);
-        //     }
-        //     catch (Exception ex)
-        //     {
-        //         Console.WriteLine($"Error calling EstimateSize: {ex.Message}");
-        //         return StatusCode(500, new GenerateStartResponse { Status = false, Message = "Failed to estimate PDF size." });
-        //     }
-        //
-        //     if (estimatedSize < 0)
-        //     {
-        //         return StatusCode(500, new GenerateStartResponse { Status = false, Message = "Estimation resulted in an invalid size." });
-        //     }
-        //
-        //     //Send Response to client
-        //     var startResponse = new GenerateStartResponse
-        //     {
-        //         Status = true,
-        //         Data = new GenerateStartData
-        //         {
-        //             EstimatedSize = estimatedSize,
-        //             ByteUnit = this.ByteUnit!
-        //         },
-        //         Message = "Started PDF Generation"
-        //     };
-        //
-        //     //Start Generation 
-        //     int pagesToGenerate = this.Pages;
-        //     int sizeToGenerate = this.Size;
-        //     string byteUnitForGeneration = this.ByteUnit!;
-        //     string processId = Guid.NewGuid().ToString();
-        //
-        //     // Start process notification
-        //     await _messagingService.StartProcess(processId, "PDF Generation", request.User ?? "Anonymous", new Dictionary<string, object>
-        //     {
-        //         { "pages", pagesToGenerate },
-        //         { "size", sizeToGenerate },
-        //         { "byteUnit", byteUnitForGeneration }
-        //     });
-        //
-        //     _ = Task.Run(async () => // Run background task
-        //     {
-        //         long actualSize = -1;
-        //         bool success = false;
-        //         string resultMessage;
-        //
-        //         try
-        //         {
-        //             Console.WriteLine($"Background task started: {pagesToGenerate} pages, {sizeToGenerate} {byteUnitForGeneration}.");
-        //
-        //             // Update progress
-        //             await _messagingService.UpdateProcessProgress(processId, 25, "Estimating size");
-        //
-        //             //Call the main logic
-        //             actualSize = _logicApiController.HandleRequest(pagesToGenerate, sizeToGenerate, byteUnitForGeneration);
-        //
-        //             if (actualSize >= 0)
-        //             {
-        //                 success = true;
-        //                 resultMessage = "Successfully generated the PDF";
-        //                 Console.WriteLine($"Background task SUCCESS. Actual size: {actualSize} bytes.");
-        //
-        //                 // Update progress to 100% and complete
-        //                 await _messagingService.UpdateProcessProgress(processId, 100, "Completed");
-        //                 await _messagingService.CompleteProcess(processId, null, new Dictionary<string, object>
-        //                 {
-        //                     { "actualSize", actualSize },
-        //                     { "byteUnit", byteUnitForGeneration }
-        //                 });
-        //             }
-        //             else
-        //             {
-        //                 resultMessage = "PDF generation failed in the logic layer.";
-        //                 Console.WriteLine($"Background task FAILED: HandleRequest returned {actualSize}.");
-        //                 await _messagingService.FailProcess(processId, resultMessage);
-        //             }
-        //         }
-        //         catch (Exception ex)
-        //         {
-        //             Console.WriteLine($"Error during background PDF generation: {ex.ToString()}");
-        //             resultMessage = $"An error occurred during PDF generation: {ex.Message}";
-        //             actualSize = -1;
-        //             success = false;
-        //             await _messagingService.FailProcess(processId, resultMessage);
-        //         }
-        //     }); // End of Task.Run
-        //
-        //     // Return the initial "Started" response immediately
-        //     return Ok(startResponse);
-        // }
-
-        [Route("GenerateStart")]
+        // --- Endpoint for Single PDF Generation and Printing ---
+        [Route("GenerateAndPrint")] // Renamed endpoint
         [HttpPost]
-        public async Task<IActionResult> StartGenerationAsync([FromBody] RequestModel request)
+        public async Task<IActionResult> GenerateAndPrintAsync([FromBody] RequestModel request)
         {
-            // Only use the needed parameters: pages, size, byteUnit, user
-            var validationResult = _inputService.CleanseInputs(request.Pages, request.SizePerPage, request.ByteUnit, null);
+            // 1. Validate Input
+            var validationResult = _inputService.CleanseInputs(request.Pages, request.SizePerPage, request.ByteUnit, request.MetricUnit); // Keep metric unit validation if needed elsewhere
             if (validationResult.ErrorMessage != null)
             {
-                return BadRequest(validationResult.ErrorMessage);
+                return BadRequest(new GenerateStartResponse { Status = false, Message = validationResult.ErrorMessage });
             }
 
-            int pages = validationResult.Pages ?? 0;
-            int size = validationResult.Size ?? 0;
+            int pages = validationResult.Pages ?? 1;
+            int sizePerPage = validationResult.Size ?? 1;
             string byteUnit = validationResult.ByteUnit!;
+            // Note: Format, Width, Height, MetricUnit from request are currently unused by generator logic directly
 
-            long estimatedSize = -1;
-            try
+            // 2. Get LPR Configuration
+            string lprHost = _configuration[LprHostKey];
+            string lprQueue = _configuration[LprQueueKey];
+            if (!int.TryParse(_configuration[LprPortKey], out int lprPort))
             {
-                estimatedSize = _logicApiController.EstimateSize(pages, size, byteUnit);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error calling EstimateSize: {ex.Message}");
-                return StatusCode(500, new GenerateStartResponse { Status = false, Message = "Failed to estimate PDF size." });
+                lprPort = 515; // Default LPR port
             }
 
-            if (estimatedSize < 0)
+            if (string.IsNullOrWhiteSpace(lprHost) || string.IsNullOrWhiteSpace(lprQueue))
             {
-                return StatusCode(500, new GenerateStartResponse { Status = false, Message = "Estimation resulted in an invalid size." });
+                 return StatusCode(500, new GenerateStartResponse { Status = false, Message = "LPR Host or Queue not configured on the server." });
             }
 
-            // Convert estimated size to requested unit
-            double estimatedSizeConverted = _logicApiController.ConvertBytesToUnit(estimatedSize, byteUnit);
+             // 3. Estimate Size (Optional but good for initial response)
+             long estimatedSize = APIController.EstimateSize(pages, sizePerPage, byteUnit);
+             double estimatedSizeConverted = estimatedSize >= 0 ? APIController.ConvertBytesToUnit(estimatedSize, byteUnit) : 0;
 
-            var startResponse = new GenerateStartResponse
+            // 4. Prepare Initial Response & Start Background Task
+            string processId = Guid.NewGuid().ToString();
+            var startResponse = new GenerateStartResponse // Reuse existing response model
             {
                 Status = true,
-                Data = new GenerateStartData
-                {
-                    EstimatedSize = (long)estimatedSizeConverted,
-                    ByteUnit = byteUnit
-                },
-                Message = "Started PDF Generation"
+                ProcessId = processId, // Include ProcessId in response
+                Data = new GenerateStartData { EstimatedSize = (long)Math.Ceiling(estimatedSizeConverted), ByteUnit = byteUnit },
+                Message = "Print job accepted. Processing in background."
             };
 
-            string processId = Guid.NewGuid().ToString();
-            await _messagingService.StartProcess(processId, "PDF Generation", request.User ?? "Anonymous", new Dictionary<string, object>
+            // Notify client via SignalR that process started
+            await _messagingService.StartProcess(processId, "PDF Print Job", request.User ?? "Anonymous", new Dictionary<string, object>
             {
-                { "pages", pages },
-                { "size", size },
-                { "byteUnit", byteUnit }
+                { "action", "GenerateAndPrint" },
+                { "pages", pages }, { "sizePerPage", sizePerPage }, { "byteUnit", byteUnit },
+                { "lprHost", lprHost }, { "lprQueue", lprQueue } // Include target printer info
             });
 
+            // Run the actual generation and printing in the background
             _ = Task.Run(async () =>
             {
-                long actualSize = -1;
-                string resultMessage;
+                string resultMessage = "Print job failed.";
+                bool success = false;
+                string generatedFileName = "Unknown.pdf";
+                var resultDetails = new Dictionary<string, object>();
+
                 try
                 {
-                    await _messagingService.UpdateProcessProgress(processId, 25, "Estimating size");
-                    actualSize = _logicApiController.HandleRequest(pages, size, byteUnit);
-                    if (actualSize >= 0)
+                    await _messagingService.UpdateProcessProgress(processId, 10, "Initializing print job...");
+
+                    // Call the logic controller method that handles generation AND printing
+                    var (printSuccess, message, fileName) = await _logicApiController.HandlePrintRequestAsync(
+                        pages, sizePerPage, byteUnit, lprHost, lprQueue, lprPort);
+
+                    success = printSuccess;
+                    resultMessage = message;
+                    generatedFileName = fileName ?? generatedFileName;
+                    resultDetails.Add("fileName", generatedFileName);
+
+                    if (success)
                     {
-                        resultMessage = "Successfully generated the PDF";
-                        await _messagingService.UpdateProcessProgress(processId, 100, "Completed");
-                        double actualSizeConverted = _logicApiController.ConvertBytesToUnit(actualSize, byteUnit);
-                        await _messagingService.CompleteProcess(processId, null, new Dictionary<string, object>
-                        {
-                            { "actualSize", actualSizeConverted },
-                            { "byteUnit", byteUnit }
-                        });
+                         await _messagingService.UpdateProcessProgress(processId, 100, "Print job sent successfully.");
+                         await _messagingService.CompleteProcess(processId, resultMessage, resultDetails);
                     }
                     else
                     {
-                        resultMessage = "PDF generation failed in the logic layer.";
-                        await _messagingService.FailProcess(processId, resultMessage);
+                         await _messagingService.UpdateProcessProgress(processId, 100, "Print job failed."); // Or keep progress lower
+                         await _messagingService.FailProcess(processId, resultMessage, resultDetails);
                     }
                 }
                 catch (Exception ex)
                 {
-                    resultMessage = $"An error occurred during PDF generation: {ex.Message}";
-                    await _messagingService.FailProcess(processId, resultMessage);
+                    // Catch unexpected errors during the background task execution
+                    Console.WriteLine($"Background Print Task Error (Process ID: {processId}): {ex.ToString()}");
+                    resultMessage = $"An internal error occurred: {ex.Message}";
+                    resultDetails.Add("error", ex.Message); // Add error detail
+                    await _messagingService.FailProcess(processId, resultMessage, resultDetails);
                 }
             });
 
-            return Ok(startResponse);
+            return Ok(startResponse); // Return immediately
         }
 
-        [Route("GenerateBatchStart")]
+
+        // --- Endpoint for Batch PDF Generation and Printing ---
+        [Route("GenerateBatchAndPrint")] // Renamed endpoint
         [HttpPost]
-        public async Task<IActionResult> StartBatchGenerationAsync([FromBody] PDF_API.Models.RequestModels.BatchRequestModel request)
+        public async Task<IActionResult> GenerateBatchAndPrintAsync([FromBody] BatchRequestModel request)
         {
-            // Validate inputs
-            if (request.NumberOfFiles == null || request.NumberOfFiles <= 0)
-                return BadRequest("NumberOfFiles must be greater than zero.");
-            if (request.PagesPerFile == null || request.PagesPerFile <= 0)
-                return BadRequest("PagesPerFile must be greater than zero.");
-            if (request.SizePerPage == null || request.SizePerPage <= 0)
-                return BadRequest("Size must be greater than zero.");
+             // 1. Validate Input
+            if (request.NumberOfFiles == null || request.NumberOfFiles <= 0) return BadRequest("NumberOfFiles must be greater than zero.");
+            if (request.PagesPerFile == null || request.PagesPerFile <= 0) return BadRequest("PagesPerFile must be greater than zero.");
+            if (request.SizePerPage == null || request.SizePerPage <= 0) return BadRequest("SizePerPage must be greater than zero.");
 
             var validationResult = _inputService.CleanseInputs(request.PagesPerFile, request.SizePerPage, request.ByteUnit, request.MetricUnit);
             if (validationResult.ErrorMessage != null)
             {
-                return BadRequest(validationResult.ErrorMessage);
+                return BadRequest(new BatchGenerateStartResponse { Status = false, Message = validationResult.ErrorMessage });
             }
 
-            int pagesPerFile = validationResult.Pages ?? 0;
-            int size = validationResult.Size ?? 0;
+            int pagesPerFile = validationResult.Pages ?? 1;
+            int sizePerPage = validationResult.Size ?? 1;
             string byteUnit = validationResult.ByteUnit!;
             int numberOfFiles = request.NumberOfFiles.Value;
 
-            // Estimate size per file
-            long estimatedSizePerFile = -1;
-            try
-            {
-                estimatedSizePerFile = _logicApiController.EstimateSize(pagesPerFile, size, byteUnit);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error calling EstimateSize: {ex.Message}");
-                return StatusCode(500, new PDF_API.Models.ResponseModels.BatchGenerateStartResponse { Status = false, Message = "Failed to estimate PDF size for batch." });
-            }
+            // 2. Get LPR Configuration
+             string lprHost = _configuration[LprHostKey];
+             string lprQueue = _configuration[LprQueueKey];
+             if (!int.TryParse(_configuration[LprPortKey], out int lprPort)) { lprPort = 515; }
 
-            if (estimatedSizePerFile < 0)
-            {
-                return StatusCode(500, new PDF_API.Models.ResponseModels.BatchGenerateStartResponse { Status = false, Message = "Estimation resulted in an invalid size." });
-            }
+             if (string.IsNullOrWhiteSpace(lprHost) || string.IsNullOrWhiteSpace(lprQueue))
+             {
+                 return StatusCode(500, new BatchGenerateStartResponse { Status = false, Message = "LPR Host or Queue not configured on the server." });
+             }
 
-            // Convert estimated size per file to requested unit
-            double estimatedSizePerFileConverted = _logicApiController.ConvertBytesToUnit(estimatedSizePerFile, byteUnit);
+            // 3. Estimate Size (Optional)
+            long estimatedSizePerFile = APIController.EstimateSize(pagesPerFile, sizePerPage, byteUnit);
+            double estimatedSizePerFileConverted = estimatedSizePerFile >= 0 ? APIController.ConvertBytesToUnit(estimatedSizePerFile, byteUnit) : 0;
 
-            // Send response to client
-            var startResponse = new PDF_API.Models.ResponseModels.BatchGenerateStartResponse
+            // 4. Prepare Initial Response & Start Background Task
+            string processId = Guid.NewGuid().ToString();
+            var startResponse = new BatchGenerateStartResponse // Reuse existing response model
             {
                 Status = true,
-                Data = new PDF_API.Models.ResponseModels.BatchGenerateStartData
-                {
-                    EstimatedSizePerFile = (long)estimatedSizePerFileConverted,
-                    ByteUnit = byteUnit,
-                    NumberOfFiles = numberOfFiles,
-                    PagesPerFile = pagesPerFile
-                },
-                Message = "Started Batch PDF Generation"
+                ProcessId = processId,
+                Data = new BatchGenerateStartData { EstimatedSizePerFile = (long)Math.Ceiling(estimatedSizePerFileConverted), ByteUnit = byteUnit, NumberOfFiles = numberOfFiles, PagesPerFile = pagesPerFile },
+                Message = "Batch print job accepted. Processing in background."
             };
 
-            string processId = Guid.NewGuid().ToString();
-            await _messagingService.StartProcess(processId, "Batch PDF Generation", request.User ?? "Anonymous", new Dictionary<string, object>
-            {
-                { "numberOfFiles", numberOfFiles },
-                { "pagesPerFile", pagesPerFile },
-                { "size", size },
-                { "byteUnit", byteUnit }
-            });
+            // Notify client
+             await _messagingService.StartProcess(processId, "Batch PDF Print Job", request.User ?? "Anonymous", new Dictionary<string, object>
+             {
+                 { "action", "GenerateBatchAndPrint" },
+                 { "numberOfFiles", numberOfFiles }, { "pagesPerFile", pagesPerFile }, { "sizePerPage", sizePerPage }, { "byteUnit", byteUnit },
+                 { "lprHost", lprHost }, { "lprQueue", lprQueue }
+             });
 
-            // Fire and forget background task to return actual size
+            // Run batch in background
             _ = Task.Run(async () =>
             {
-                long[] actualSizes = Array.Empty<long>();
-                string resultMessage;
-                try
-                {
-                    await _messagingService.UpdateProcessProgress(processId, 25, "Estimating size");
-                    actualSizes = _logicApiController.HandleBatchRequest(numberOfFiles, pagesPerFile, size, byteUnit);
-                    if (actualSizes.Length == numberOfFiles)
-                    {
-                        resultMessage = "Successfully generated all PDFs in batch.";
-                        await _messagingService.UpdateProcessProgress(processId, 100, "Completed");
-                        // Convert all actual sizes to requested unit
-                        double[] actualSizesConverted = actualSizes.Select(s => _logicApiController.ConvertBytesToUnit(s, byteUnit)).ToArray();
-                        await _messagingService.CompleteProcess(processId, null, new Dictionary<string, object>
-                        {
-                            { "actualSizes", actualSizesConverted },
-                            { "byteUnit", byteUnit }
-                        });
-                    }
-                    else
-                    {
-                        resultMessage = "Batch PDF generation failed for some files.";
-                        await _messagingService.FailProcess(processId, resultMessage);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    resultMessage = $"An error occurred during batch PDF generation: {ex.Message}";
-                    await _messagingService.FailProcess(processId, resultMessage);
-                }
+                 string resultMessage = "Batch print job failed.";
+                 bool overallSuccess = false;
+                 var resultDetails = new Dictionary<string, object>();
+
+                 try
+                 {
+                      await _messagingService.UpdateProcessProgress(processId, 10, "Initializing batch print job...");
+
+                      // Call the logic controller method for batch printing
+                      var (batchSuccess, successCount, totalFiles, message) = await _logicApiController.HandleBatchPrintRequestAsync(
+                          numberOfFiles, pagesPerFile, sizePerPage, byteUnit, lprHost, lprQueue, lprPort);
+
+                      overallSuccess = batchSuccess;
+                      resultMessage = message;
+                      resultDetails.Add("totalFiles", totalFiles);
+                      resultDetails.Add("successCount", successCount);
+                      resultDetails.Add("failureCount", totalFiles - successCount);
+
+                      if (overallSuccess) // Only true if successCount == totalFiles
+                      {
+                           await _messagingService.UpdateProcessProgress(processId, 100, "Batch print job completed successfully.");
+                           await _messagingService.CompleteProcess(processId, resultMessage, resultDetails);
+                      }
+                      else // Partial or total failure
+                      {
+                           await _messagingService.UpdateProcessProgress(processId, 100, "Batch print job finished with errors."); // Or calculate percentage
+                           await _messagingService.FailProcess(processId, resultMessage, resultDetails);
+                      }
+                 }
+                 catch (Exception ex)
+                 {
+                      Console.WriteLine($"Background Batch Print Task Error (Process ID: {processId}): {ex.ToString()}");
+                      resultMessage = $"An internal error occurred during batch print: {ex.Message}";
+                      resultDetails.Add("error", ex.Message);
+                      await _messagingService.FailProcess(processId, resultMessage, resultDetails);
+                 }
             });
 
-            return Ok(startResponse);
+            return Ok(startResponse); // Return immediately
         }
 
 
-        [Route("GenerateRandomStart")]
+         // --- Endpoint for Random PDF Generation and Printing ---
+        [Route("GenerateRandomAndPrint")] // Renamed endpoint
         [HttpPost]
-        public async Task<IActionResult> StartRandomGenerationAsync([FromBody] RandomRequestModel request)
+        public async Task<IActionResult> GenerateRandomAndPrintAsync([FromBody] RandomRequestModel request)
         {
-            int sizeMin = request.SizeMin;
-            int sizeMax = request.SizeMax;
-            int pageMin = request.PageMin;
-            int pageMax = request.PageMax;
-            string mode = request.Mode ?? "single";
-            int numberOfFiles = request.NumberOfFiles ?? 1;
-            string byteUnit = request.ByteUnit ?? "MB";
-            string metricUnit = request.MetricUnit ?? "mm";
-            string user = request.User ?? "Anonymous";
+            // 1. Basic Validation & Random Value Generation
+             int sizeMin = request.SizeMin;
+             int sizeMax = request.SizeMax;
+             int pageMin = request.PageMin;
+             int pageMax = request.PageMax;
+             string mode = request.Mode ?? "single";
+             int numberOfFiles = request.NumberOfFiles ?? 1;
+             // Use InputService for cleansing units
+             string byteUnit = _inputService.CleanseInputs(null, null, request.ByteUnit, null).ByteUnit ?? "MB";
+             string metricUnit = _inputService.CleanseInputs(null, null, null, request.MetricUnit).MetricUnit ?? "mm";
+             string user = request.User ?? "Anonymous";
 
-            var randomizer = new Logic.PDFRandomizer();
-            var (sizePerPage, pages) = randomizer.GenerateRandomValues(sizeMin, sizeMax, pageMin, pageMax);
+             var randomizer = new Logic.PDFRandomizer();
+             int sizePerPage, pages;
+             try { (sizePerPage, pages) = randomizer.GenerateRandomValues(sizeMin, sizeMax, pageMin, pageMax); }
+             catch (ArgumentException ex) { return BadRequest($"Invalid random generation range: {ex.Message}"); }
 
-            if (mode == "batch")
+
+             // 2. Delegate to Single or Batch Print Endpoint Logic
+            if (mode.Equals("batch", StringComparison.OrdinalIgnoreCase))
             {
                 var batchRequest = new Models.RequestModels.BatchRequestModel
                 {
@@ -358,24 +268,57 @@ namespace PDF_API.Controllers
                     PagesPerFile = pages,
                     SizePerPage = sizePerPage,
                     ByteUnit = byteUnit,
-                    MetricUnit = metricUnit,
+                    MetricUnit = metricUnit, // Pass along if needed by model
                     User = user
                 };
-                return await StartBatchGenerationAsync(batchRequest);
+                // Call the batch print method directly
+                return await GenerateBatchAndPrintAsync(batchRequest);
             }
-            else
+            else // Single mode
             {
                 var singleRequest = new Models.RequestModels.RequestModel
                 {
                     Pages = pages,
                     SizePerPage = sizePerPage,
                     ByteUnit = byteUnit,
-                    MetricUnit = metricUnit,
-                    Format = "A4",
+                    MetricUnit = metricUnit, // Pass along if needed
+                    Format = "A4", // Currently unused by generation logic
                     User = user
                 };
-                return await StartGenerationAsync(singleRequest);
+                 // Call the single print method directly
+                 return await GenerateAndPrintAsync(singleRequest);
             }
         }
+
+        // --- Remove GenerateAndStreamPdf endpoint ---
+        // [Route("GenerateAndStream")] ... removed ...
+
+        // --- Keep Original Background Task Endpoints (Optional) ---
+        // You might keep GenerateStart/GenerateBatchStart if you still
+        // need the behavior of saving locally without printing.
+        // If not, you can remove them. For now, I'll comment them out.
+
+        /*
+        [Route("GenerateStart")]
+        [HttpPost]
+        public async Task<IActionResult> StartGenerationAsync([FromBody] RequestModel request)
+        {
+             // ... Original implementation saving locally ...
+        }
+
+        [Route("GenerateBatchStart")]
+        [HttpPost]
+        public async Task<IActionResult> StartBatchGenerationAsync([FromBody] BatchRequestModel request)
+        {
+             // ... Original implementation saving locally ...
+        }
+
+        [Route("GenerateRandomStart")]
+        [HttpPost]
+        public async Task<IActionResult> StartRandomGenerationAsync([FromBody] RandomRequestModel request)
+        {
+             // ... Original implementation calling local save endpoints ...
+        }
+        */
     }
 }

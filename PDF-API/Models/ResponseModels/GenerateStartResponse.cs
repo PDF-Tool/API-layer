@@ -12,4 +12,7 @@ public class GenerateStartResponse
 
     [JsonPropertyName("message")]
     public string Message { get; set; } = string.Empty;
+
+    [JsonPropertyName("ProcessId")]
+    public string? ProcessId { get; set; }  // Nullable process ID for async requests
 }

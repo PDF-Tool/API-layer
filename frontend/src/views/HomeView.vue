@@ -16,11 +16,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import SingleForm from '@/components/forms/SingleForm.vue'
 import BatchForm from '@/components/forms/BatchForm.vue'
 
-import type { FdfFields } from '@/types/pdf'
+import type { PdfFields } from '@/types/pdf'
 import { usePdfStore } from '@/stores/pdfStore'
 import RandomForm from '@/components/forms/RandomForm.vue'
 
-const { formData, createPdf } = usePdfStore()
+const { formData,  } = usePdfStore()
 
 const canCreatePdf = computed(() => {
   return formData.pages > 0 && formData.sizePerPage > 0

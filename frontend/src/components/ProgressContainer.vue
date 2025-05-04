@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import Progress from './Progress.vue';
 import { useWebSocketStore } from '@/stores/webSocketStore';
-import CanonLogo from '@/assets/canon-logo.svg?component';
+import CanonLogo from '@/assets/canon-logo.svg';
 
 const ws = useWebSocketStore();
 

@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label'
 import { computed } from 'vue'
 import { usePdfStore } from '@/stores/pdfStore'
 
-const { formData, createPdf } = usePdfStore()
+const { formData, createAndPrintPdf } = usePdfStore()
 
 const canCreatePdf = computed(() => {
     return formData.pages > 0 && formData.sizePerPage > 0
@@ -84,12 +84,12 @@ const canCreatePdf = computed(() => {
                     </div>
                     <DropdownMenu>
                         <DropdownMenuTrigger as-child>
-                            <Button class="min-w-[70px] select-none"> {{ formData.metrixUnit }}
+                            <Button class="min-w-[70px] select-none"> {{ formData.metricsUnit }}
                                 <span class="icon-[material-symbols--arrow-drop-down-rounded] text-xl"></span>
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
-                            <DropdownMenuRadioGroup v-model="formData.metrixUnit">
+                            <DropdownMenuRadioGroup v-model="formData.metricsUnit">
                                 <DropdownMenuRadioItem v-for="metric in metrics" :key="metric" :value="metric">
                                     {{ metric }}
                                 </DropdownMenuRadioItem>
@@ -99,7 +99,7 @@ const canCreatePdf = computed(() => {
                 </div>
             </div>
         </div>
-        <div class="flex flex-col gap-4">
+        <!-- <div class="flex flex-col gap-4">
             <div class="flex flex-col gap-2">
                 <Label for="checkHost">Check host connection</Label>
                 <div class="flex gap-2">
@@ -109,7 +109,7 @@ const canCreatePdf = computed(() => {
                     </Button>
                 </div>
             </div>
-        </div>
-        <Button :disabled="!canCreatePdf" @click="createPdf">Generate PDF</Button>
+        </div> -->
+        <Button :disabled="!canCreatePdf" @click="createAndPrintPdf">Generate PDF</Button>
     </div>
 </template>

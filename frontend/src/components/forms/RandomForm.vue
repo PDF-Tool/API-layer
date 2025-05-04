@@ -5,7 +5,8 @@ import {
     DropdownMenuRadioGroup,
     DropdownMenuRadioItem,
     DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+} 
+from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { fileSizeFormats, metrics } from '@/lib/utils'
@@ -14,7 +15,7 @@ import { Label } from '@/components/ui/label'
 import { ref, computed } from 'vue'
 import { usePdfStore } from '@/stores/pdfStore'
 
-const { createRandomPdf } = usePdfStore()
+const { createAndPrintRandomPdf } = usePdfStore()
 
 const mode = ref<'single' | 'batch'>('single')
 const numberOfFiles = ref(2)
@@ -36,20 +37,6 @@ function getRandomInt(min: number, max: number) {
     return Math.floor(Math.random() * (max - min + 1)) + min
 }
 
-async function handleSubmit() {
-    const randomRequest: any = {
-        SizeMin: sizeMin.value,
-        SizeMax: sizeMax.value,
-        PageMin: pagesMin.value,
-        PageMax: pagesMax.value,
-        Mode: mode.value,
-        NumberOfFiles: mode.value === 'batch' ? numberOfFiles.value : undefined,
-        ByteUnit: byteUnit.value,
-        MetricUnit: metricUnit.value,
-        // User will be added in the store
-    }
-    await createRandomPdf(randomRequest)
-}
 </script>
 
 <template>
@@ -143,6 +130,15 @@ async function handleSubmit() {
                 </div>
             </div>
         </div>
-        <Button :disabled="!canCreate" @click="handleSubmit">Generate PDF(s) with Random Values</Button>
+        <Button :disabled="!canCreate" @click="() => createAndPrintRandomPdf({
+            sizeMin,
+            sizeMax,
+            pagesMin,
+            pagesMax,
+            mode,
+            numberOfFiles,
+            byteUnit,
+            metricUnit
+        })">Generate PDF(s) with Random Values</Button>
     </div>
 </template>

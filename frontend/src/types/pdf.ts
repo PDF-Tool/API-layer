@@ -2,22 +2,34 @@ import { type PageFormat } from '@/lib/pageFormat'
 import { type FileSizeFormat } from '@/lib/utils'
 
 export interface PdfFields {
-  pages: number
-  format?: PageFormat
-  sizePerPage: number
-  byteUnit?: FileSizeFormat
-  square?: number
-  width?: number
-  height?: number
-  metricsUnit?: string
+  Pages: number
+  Format?: PageFormat
+  SizePerPage: number
+  ByteUnit?: FileSizeFormat
+  Square?: number
+  Width?: number
+  Height?: number
+  MetricUnit?: string
   User?: string
 }
 
 export interface BatchPdfFields{
-  numberOfFiles: number
-  pagesPerFile: number
-  sizePerPage: number
-  byteUnit: FileSizeFormat
-  metricUnit: string
+  NumberOfFiles: number
+  PagesPerFile: number
+  SizePerPage: number
+  ByteUnit: FileSizeFormat
+  MetricUnit: string
+  User?: string
+}
+
+export interface RandomPdfFields{
+  SizeMin: number
+  SizeMax: number
+  PageMin: number
+  PageMax: number
+  Mode: string
+  NumberOfFiles: number
+  ByteUnit: FileSizeFormat
+  MetricUnit: string  
   User?: string
 }

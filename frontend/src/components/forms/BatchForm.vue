@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label'
 import { computed } from 'vue'
 import { usePdfStore } from '@/stores/pdfStore'
 
-const { batchFormData, createBatchPdf } = usePdfStore()
+const { batchFormData, createAndPrintBatchPdf } = usePdfStore()
 
 const canCreateBatchPdf = computed(() => {
     return batchFormData.numberOfFiles > 0 && batchFormData.pagesPerFile > 0 && batchFormData.sizePerPage > 0
@@ -102,6 +102,6 @@ const canCreateBatchPdf = computed(() => {
                 </div>
             </div>
         </div>
-        <Button :disabled="!canCreateBatchPdf" @click="createBatchPdf">Generate Batch PDFs</Button>
+        <Button :disabled="!canCreateBatchPdf" @click="createAndPrintBatchPdf">Generate Batch PDFs</Button>
     </div>
 </template>

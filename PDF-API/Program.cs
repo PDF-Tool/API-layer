@@ -36,12 +36,11 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-app.UseAuthorization();
-
 app.UseWebSockets();
 
 app.UseCors("AllowAnyOrigin");
+app.UseAuthorization();
+
 app.Map("/ws", async (string name, HttpContext context, WebSocketAdapter ws) =>
 {
     if (context.WebSockets.IsWebSocketRequest)
