@@ -3,7 +3,7 @@ import { defineStore } from 'pinia'
 import axios from 'axios'
 
 // Configure base URL for your API calls
-const apiBaseUrl = import.meta.env.VITE_BACKEND_SERVER_URL || '/api';
+const apiBaseUrl = import.meta.env.VITE_BACKEND_SERVER_URL + '/api';
 
 
 export const useLprStore = defineStore('lpr', () => {
@@ -30,7 +30,7 @@ export const useLprStore = defineStore('lpr', () => {
     connectionStatusMessage.value = 'Connecting' // Static message while checking
 
     try {
-        const response = await axios.get(`${apiBaseUrl}/lpr/check`, { // Ensure path is correct
+        const response = await axios.get(`${apiBaseUrl}/Lpr/check`, { // Ensure path is correct
             params: {
                 host: lprHost.value,
                 port: lprPort.value

@@ -1,4 +1,4 @@
-@PDF_API_HostAddress = http://localhost:5091
+@PDF_API_HostAddress = https://localhost:7269/
 
 GET {{PDF_API_HostAddress}}/weatherforecast/
 Accept: application/json

@@ -17,7 +17,7 @@ import { usePdfStore } from '@/stores/pdfStore'
 const { formData, createAndPrintPdf } = usePdfStore()
 
 const canCreatePdf = computed(() => {
-    return formData.pages > 0 && formData.sizePerPage > 0
+    return formData.Pages > 0 && formData.SizePerPage > 0
 })
 </script>
 
@@ -26,15 +26,15 @@ const canCreatePdf = computed(() => {
         <div class="grid w-full items-center gap-2">
             <Label for="size">Size per page</Label>
             <div class="flex gap-2">
-                <Input type="number" v-model="formData.sizePerPage" name="sizePerPage" placeholder="Select image size per page..." />
+                <Input type="number" v-model="formData.SizePerPage" name="sizePerPage" placeholder="Select image size per page..." />
                 <DropdownMenu>
                     <DropdownMenuTrigger as-child>
-                        <Button class="min-w-[70px] select-none"> {{ formData.byteUnit }}
+                        <Button class="min-w-[70px] select-none"> {{ formData.ByteUnit }}
                             <span class="icon-[material-symbols--arrow-drop-down-rounded] text-xl"></span>
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
-                        <DropdownMenuRadioGroup v-model="formData.byteUnit">
+                        <DropdownMenuRadioGroup v-model="formData.ByteUnit">
                             <DropdownMenuRadioItem v-for="format in fileSizeFormats" :key="format" :value="format">
                                 {{ format }}
                             </DropdownMenuRadioItem>
@@ -45,21 +45,21 @@ const canCreatePdf = computed(() => {
         </div>
         <div class="grid w-full items-center gap-2">
             <Label for="pages">Amount of pages</Label>
-            <Input type="number" name="pages" v-model="formData.pages" placeholder="Select amount of pages..." />
+            <Input type="number" name="pages" v-model="formData.Pages" placeholder="Select amount of pages..." />
         </div>
         <div class="p-4 bg-primary rounded-lg border-input border shadow-sm flex flex-col gap-4">
             <div class="flex flex-col w-full items-center gap-2">
                 <label class="w-full">Preset</label>
                 <DropdownMenu class="w-full">
                     <DropdownMenuTrigger as-child>
-                        <Button :disabled="!!formData.width || !!formData.height"
+                        <Button :disabled="!!formData.Width || !!formData.Height"
                             class="select-none border-1 text-black  bg-background! justify-start hover:bg-transparent  w-full">
-                            {{ formData.format }}
+                            {{ formData.Format }}
                             <span class="icon-[material-symbols--arrow-drop-down-rounded] text-xl"></span>
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent class="w-full">
-                        <DropdownMenuRadioGroup v-model="formData.format">
+                        <DropdownMenuRadioGroup v-model="formData.Format">
                             <DropdownMenuRadioItem v-for="format in pageFormats" :key="format" :value="format">
                                 {{ format }}
                             </DropdownMenuRadioItem>
@@ -71,25 +71,25 @@ const canCreatePdf = computed(() => {
                 <Label for="size">Dimensions</Label>
                 <div class="flex gap-2">
                     <div class="relative">
-                        <Input id="size" type="number" v-model="formData.width" class="pl-7 bg-background!" />
+                        <Input id="size" type="number" v-model="formData.Width" class="pl-7 bg-background!" />
                         <span class="absolute start-0 inset-y-0 flex items-center justify-center px-2">
                             <span class="text-foreground/50">W</span>
                         </span>
                     </div>
                     <div class="relative">
-                        <Input id="size" type="number" v-model="formData.height" class="pl-7 bg-background!" />
+                        <Input id="size" type="number" v-model="formData.Height" class="pl-7 bg-background!" />
                         <span class="absolute start-0 inset-y-0 flex items-center justify-center px-2">
                             <span class="text-foreground/50">H</span>
                         </span>
                     </div>
                     <DropdownMenu>
                         <DropdownMenuTrigger as-child>
-                            <Button class="min-w-[70px] select-none"> {{ formData.metricsUnit }}
+                            <Button class="min-w-[70px] select-none"> {{ formData.MetricUnit }}
                                 <span class="icon-[material-symbols--arrow-drop-down-rounded] text-xl"></span>
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
-                            <DropdownMenuRadioGroup v-model="formData.metricsUnit">
+                            <DropdownMenuRadioGroup v-model="formData.MetricUnit">
                                 <DropdownMenuRadioItem v-for="metric in metrics" :key="metric" :value="metric">
                                     {{ metric }}
                                 </DropdownMenuRadioItem>

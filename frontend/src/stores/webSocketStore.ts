@@ -36,123 +36,185 @@ export const useWebSocketStore = defineStore('websocket', () => {
 
   function connect(name: string) {
     if (socket.value?.readyState === WebSocket.OPEN) {
+      console.log('WebSocket already connected.');
       return
     }
+    if (status.value === SocketStatus.Connecting) {
+        console.log('WebSocket connection already in progress.');
+        return;
+    }
 
-    status.value = 'connecting'
-    username.value = name
+    status.value = SocketStatus.Connecting; // Use enum value
+    username.value = name;
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const host = import.meta.env.VITE_API_URL || `${protocol}//${window.location.hostname}:5091`
+    // Use the VITE_BACKEND_SERVER_URL directly as the base host
+    const host = import.meta.env.VITE_BACKEND_SERVER_URL;
 
-    socket.value = new WebSocket(`${host}/ws?name=${encodeURIComponent(name)}`)
+    if (!host) {
+        console.error('VITE_BACKEND_SERVER_URL is not defined in environment variables.');
+        status.value = SocketStatus.Disconnected; // Use enum value
+        return;
+    }
 
-    socket.value.onopen = () => (status.value = SocketStatus.Connected)
+    // Determine the WebSocket protocol (ws/wss) based on the host protocol
+    const wsProtocol = host.startsWith('https://') ? 'wss:' : 'ws:';
+    // Construct the WebSocket URL by replacing http/https with ws/wss and appending /ws
+    const wsHost = host.replace(/^https?:/, wsProtocol);
+    const wsUrl = `${wsHost}/ws?name=${encodeURIComponent(name)}`;
 
-    socket.value.onclose = () => (status.value = SocketStatus.Disconnected)
+    console.log(`Attempting WebSocket connection to: ${wsUrl}`);
+
+    try {
+        socket.value = new WebSocket(wsUrl);
+    } catch (e) {
+        console.error("Failed to create WebSocket:", e);
+        status.value = SocketStatus.Disconnected;
+        return;
+    }
+
+
+    socket.value.onopen = () => {
+      console.log('WebSocket connection opened.');
+      status.value = SocketStatus.Connected; // Use enum value
+    }
+
+    socket.value.onclose = (event) => {
+      console.log('WebSocket connection closed:', event.code, event.reason);
+      status.value = SocketStatus.Disconnected; // Use enum value
+      socket.value = null; // Clear the socket ref
+    }
 
     socket.value.onmessage = (event) => {
-      const data: Message = JSON.parse(event.data)
+      try {
+          const data: Message = JSON.parse(event.data);
+          // console.log('WebSocket message received:', data); // Optional: log received messages
 
-      switch (data.Type) {
-        case MessageType.ChatMessage:
-          messages.value.push(data as ChatMessage)
-          break
+          switch (data.Type) {
+            case MessageType.ChatMessage:
+              messages.value.push(data as ChatMessage)
+              break
 
-        case MessageType.UserList:
-          users.value = (data as UserListMessage).Users
-          break
+            case MessageType.UserList:
+              users.value = (data as UserListMessage).Users
+              break
 
-        case MessageType.UserConnected:
-          const connectedUser = (data as UserConnectedMessage).Name
-          if (!users.value.includes(connectedUser)) {
-            users.value = [...users.value, connectedUser]
+            case MessageType.UserConnected:
+              const connectedUser = (data as UserConnectedMessage).Name
+              if (!users.value.includes(connectedUser)) {
+                users.value = [...users.value, connectedUser].sort() // Keep sorted
+              }
+              break
+
+            case MessageType.UserDisconnected:
+              const disconnectedUser = (data as UserDisconnectedMessage).Name
+              users.value = users.value.filter((user) => user !== disconnectedUser)
+              break
+
+            case MessageType.History:
+              const historyData = data as HistoryMessage
+              if (historyData.Messages) {
+                const chatMessages = historyData.Messages.filter(
+                  (m) => m.Type === MessageType.ChatMessage,
+                ).map((m) => m as ChatMessage)
+                messages.value = chatMessages
+              }
+              break
+
+            case MessageType.PingMessage:
+              sendPong((data as PingMessage).Timestamp)
+              break
+
+            case MessageType.Error:
+              console.error(`Server error message: ${(data as ErrorMessage).ErrorMessage}`)
+              // Potentially display this error to the user via toast or other means
+              break
+
+            case MessageType.ProcessStarted: {
+              const msg = data as ProcessStartedMessage
+              processes.value[msg.ProcessId] = { started: msg }
+              break
+            }
+            case MessageType.ProcessProgress: {
+              const msg = data as ProcessProgressMessage
+              if (!processes.value[msg.ProcessId]) processes.value[msg.ProcessId] = {}
+              processes.value[msg.ProcessId].progress = msg
+              break
+            }
+            case MessageType.ProcessCompleted: {
+              const msg = data as ProcessCompletedMessage
+              if (!processes.value[msg.ProcessId]) processes.value[msg.ProcessId] = {}
+              processes.value[msg.ProcessId].completed = msg
+              break
+            }
+            case MessageType.ProcessFailed: {
+              const msg = data as ProcessFailedMessage
+              if (!processes.value[msg.ProcessId]) processes.value[msg.ProcessId] = {}
+              processes.value[msg.ProcessId].failed = msg
+              break
+            }
+
+            default:
+              console.warn('Unknown WebSocket message type received:', data.Type, data)
           }
-          break
-
-        case MessageType.UserDisconnected:
-          const disconnectedUser = (data as UserDisconnectedMessage).Name
-          users.value = users.value.filter((user) => user !== disconnectedUser)
-          break
-
-        case MessageType.History:
-          const historyData = data as HistoryMessage
-          if (historyData.Messages) {
-            const chatMessages = historyData.Messages.filter(
-              (m) => m.Type === MessageType.ChatMessage,
-            ).map((m) => m as ChatMessage)
-            messages.value = chatMessages
-          }
-          break
-
-        case MessageType.PingMessage:
-          sendPong((data as PingMessage).Timestamp)
-          break
-
-        case MessageType.Error:
-          console.error(`Server error: ${(data as ErrorMessage).ErrorMessage}`)
-          break
-
-        case MessageType.ProcessStarted: {
-          const msg = data as ProcessStartedMessage
-          processes.value[msg.ProcessId] = { started: msg }
-          break
-        }
-        case MessageType.ProcessProgress: {
-          const msg = data as ProcessProgressMessage
-          if (!processes.value[msg.ProcessId]) processes.value[msg.ProcessId] = {}
-          processes.value[msg.ProcessId].progress = msg
-          break
-        }
-        case MessageType.ProcessCompleted: {
-          const msg = data as ProcessCompletedMessage
-          if (!processes.value[msg.ProcessId]) processes.value[msg.ProcessId] = {}
-          processes.value[msg.ProcessId].completed = msg
-          break
-        }
-        case MessageType.ProcessFailed: {
-          const msg = data as ProcessFailedMessage
-          if (!processes.value[msg.ProcessId]) processes.value[msg.ProcessId] = {}
-          processes.value[msg.ProcessId].failed = msg
-          break
-        }
-
-        default:
-          console.warn('Unknown message type:', data)
+      } catch (e) {
+            console.error("Failed to parse WebSocket message:", e, "Raw data:", event.data);
       }
     }
 
-    socket.value.onerror = (error) => {
-      console.error('WebSocket error:', error)
-      status.value = 'disconnected'
+    socket.value.onerror = (event) => {
+      // The 'error' event is usually followed by 'close'.
+      // Log the error, state will be updated in onclose.
+      console.error('WebSocket error event:', event)
+      // Setting status here might be redundant if onclose handles it,
+      // but can be useful if onclose doesn't fire for some errors.
+      // status.value = SocketStatus.Disconnected;
     }
   }
 
   function disconnect() {
-    socket.value?.close()
-    socket.value = null
-    status.value = 'disconnected'
+    if (socket.value) {
+        console.log('Disconnecting WebSocket...');
+        socket.value.close(); // This will trigger the onclose handler
+    }
+    // Clear local state immediately
+    status.value = SocketStatus.Disconnected;
+    username.value = '';
+    users.value = [];
+    messages.value = [];
+    processes.value = {};
+    socket.value = null;
   }
 
   function sendMessage(content: string) {
     if (socket.value?.readyState === WebSocket.OPEN) {
-      const message = {
+      const message: ChatMessage = {
+        Type: MessageType.ChatMessage, // Use enum value
         Name: username.value,
         Content: content,
-        Type: 'ChatMessage',
       }
-      socket.value.send(JSON.stringify(message))
+      try {
+        socket.value.send(JSON.stringify(message));
+      } catch (e) {
+        console.error("Failed to send WebSocket message:", e);
+      }
+
+    } else {
+        console.warn('Cannot send message, WebSocket is not open. State:', status.value, socket.value?.readyState);
     }
   }
 
   function sendPong(originalTimestamp: number) {
     if (socket.value?.readyState === WebSocket.OPEN) {
       const pong: PongMessage = {
-        Type: MessageType.PongMessage,
+        Type: MessageType.PongMessage, // Use enum value
         Timestamp: Date.now(),
         OriginalTimestamp: originalTimestamp,
       }
-      socket.value.send(JSON.stringify(pong))
+      try {
+          socket.value.send(JSON.stringify(pong));
+      } catch (e) {
+           console.error("Failed to send Pong message:", e);
+      }
     }
   }
 

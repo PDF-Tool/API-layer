@@ -134,7 +134,6 @@ public class WebSocketAdapter : IConnectionAdapter
                     return _messagingService.BroadcastMessage(failedMessage!);
 
                 case "PongMessage":
-                    // Client responded to ping, connection is alive
                     return Task.CompletedTask;
 
                 default:
