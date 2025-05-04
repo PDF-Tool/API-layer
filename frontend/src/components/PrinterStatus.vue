@@ -59,7 +59,7 @@ const displayStatusMessage = computed(() => {
 <template>
     <!-- MODIFIED: Increased shadow from shadow-lg to shadow-xl -->
     <div class="fixed bottom-4 right-4 bg-card p-4 rounded-lg shadow-xl border w-80 z-50">
-        <h3 class="text-lg font-semibold mb-3">LPD PrinterServer Status:</h3>
+        <h3 class="text-lg font-semibold mb-3">PrinterServer Status:</h3>
         <div class="space-y-3">
             <div>
                 <Label for="lprHostInput">Host/IP:</Label>

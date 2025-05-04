@@ -30,58 +30,49 @@ export const useLprStore = defineStore('lpr', () => {
     connectionStatusMessage.value = 'Connecting' // Static message while checking
 
     try {
-        const response = await axios.get(`${apiBaseUrl}/Lpr/check`, { // Ensure path is correct
+        const response = await axios.get(`${apiBaseUrl}/Lpr/check`, {
             params: {
                 host: lprHost.value,
                 port: lprPort.value
             },
-            timeout: 5000 // Add timeout
+            timeout: 5000
         });
 
         if (response.data && typeof response.data.connected === 'boolean') {
-            isConnected.value = response.data.connected; // Set connection status first
+            isConnected.value = response.data.connected;
 
             if (response.data.connected) {
-                // Successfully connected
-                // Set the detailed message
                 connectionStatusMessage.value = `Connected to ${lprHost.value}:${lprPort.value}`;
-
-                // After 2 seconds, revert to "Connected" AND set checking to false
+                // Set checking to false immediately on success
+                isCheckingConnection.value = false;
+                // Optionally, after a short delay, revert to 'Connected'
                 setTimeout(() => {
-                    // Only change message if it hasn't been updated by another check/error since
                     if (connectionStatusMessage.value === `Connected to ${lprHost.value}:${lprPort.value}`) {
-                         connectionStatusMessage.value = 'Connected';
+                        connectionStatusMessage.value = 'Connected';
                     }
-                    // --- Set checking to false HERE, after the delay ---
-                    isCheckingConnection.value = false;
                 }, 2000);
-
             } else {
-                // Connection failed according to API
                 connectionStatusMessage.value = response.data.message || 'Connection Failed';
-                // --- Set checking to false immediately on failure ---
                 isCheckingConnection.value = false;
             }
         } else {
-            // Invalid response structure
             isConnected.value = false;
             connectionStatusMessage.value = 'Invalid response from connection check API.';
-             // --- Set checking to false immediately on error ---
             isCheckingConnection.value = false;
         }
 
-    } catch (error: any) {
-        console.error('Error checking LPR connection:', error);
-        isConnected.value = false; // Assume not connected on error
-         if (error.response && error.response.data && error.response.data.message) {
-             connectionStatusMessage.value = `Error: ${error.response.data.message}`;
-         } else if (axios.isCancel(error) || error.code === 'ECONNABORTED') {
-             connectionStatusMessage.value = 'Connection check timed out.';
-         } else {
-             connectionStatusMessage.value = 'Error checking connection (network or server issue).';
-         }
-         // --- Set checking to false immediately on error ---
-         isCheckingConnection.value = false;
+    } catch (error) {
+        const err = error as any;
+        console.error('Error checking LPR connection:', err);
+        isConnected.value = false;
+        if (err.response && err.response.data && err.response.data.message) {
+            connectionStatusMessage.value = `Error: ${err.response.data.message}`;
+        } else if (axios.isCancel(err) || err.code === 'ECONNABORTED') {
+            connectionStatusMessage.value = 'Connection check timed out.';
+        } else {
+            connectionStatusMessage.value = 'Error checking connection (network or server issue).';
+        }
+        isCheckingConnection.value = false;
     }
   }
 
