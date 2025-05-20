@@ -19,12 +19,8 @@ import BatchForm from '@/components/forms/BatchForm.vue'
 import type { PdfFields } from '@/types/pdf'
 import { usePdfStore } from '@/stores/pdfStore'
 import RandomForm from '@/components/forms/RandomForm.vue'
+import PerformanceForm from '@/components/forms/PerformanceForm.vue'
 
-const { formData,  } = usePdfStore()
-
-const canCreatePdf = computed(() => {
-  return formData.pages > 0 && formData.sizePerPage > 0
-})
 </script>
 
 <template>
@@ -41,6 +37,9 @@ const canCreatePdf = computed(() => {
           <TabsTrigger value="random">
             Random
           </TabsTrigger>
+          <TabsTrigger value="performance">
+            performance
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="single">
           <SingleForm />
@@ -50,6 +49,9 @@ const canCreatePdf = computed(() => {
         </TabsContent>
         <TabsContent value="random">
           <RandomForm />
+        </TabsContent>
+        <TabsContent value="performance">
+          <PerformanceForm />
         </TabsContent>
       </Tabs>
     </div>

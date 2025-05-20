@@ -11,7 +11,7 @@ export async function generateAndPrintPdf(body: PdfFields) {
     return response // Response contains ProcessId and initial status
   } catch (error) {
     console.error('Error submitting print job:', error)
-    throw error; // Re-throw to be caught in the store
+    throw error // Re-throw to be caught in the store
   }
 }
 
@@ -22,17 +22,18 @@ export async function generateAndPrintBatchPdf(body: BatchPdfFields) {
     return response
   } catch (error) {
     console.error('Error submitting batch print job:', error)
-     throw error;
+    throw error
   }
 }
 
-export async function generateAndPrintRandomPdf(body: RandomPdfFields) { // Use specific type if available
+export async function generateAndPrintRandomPdf(body: RandomPdfFields) {
+  // Use specific type if available
   try {
     // Call the new endpoint
     const response = await api.post('/PDFGenerator/GenerateRandomAndPrint', body)
     return response
   } catch (error) {
     console.error('Error submitting random print job:', error)
-     throw error;
+    throw error
   }
 }
