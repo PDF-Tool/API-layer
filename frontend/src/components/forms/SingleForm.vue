@@ -13,7 +13,10 @@ import { pageFormats } from '@/lib/pageFormat'
 import { Label } from '@/components/ui/label'
 import { computed } from 'vue'
 import { usePdfStore } from '@/stores/pdfStore'
+<<<<<<< HEAD
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+=======
+>>>>>>> parent of 513973d (Frontend cleanup)
 
 const { formData, createAndPrintPdf } = usePdfStore()
 

@@ -19,8 +19,6 @@ import BatchForm from '@/components/forms/BatchForm.vue'
 import type { PdfFields } from '@/types/pdf'
 import { usePdfStore } from '@/stores/pdfStore'
 import RandomForm from '@/components/forms/RandomForm.vue'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-
 
 const { formData,  } = usePdfStore()
 
@@ -33,44 +31,16 @@ const canCreatePdf = computed(() => {
   <section>
     <div class="flex flex-col gap-4">
       <Tabs default-value="single" class="w-full">
-                <TabsList class="w-full">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <TabsTrigger value="single">
-                  Single
-                </TabsTrigger>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Generate a single PDF document at once</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <TabsTrigger value="batch">
-                  Batch
-                </TabsTrigger>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Generate multiple PDFs documents at once</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <TabsTrigger value="random">
-                  Random
-                </TabsTrigger>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Generate PDFs documents with randomized properties</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+        <TabsList class="w-full">
+          <TabsTrigger value="single">
+            Single
+          </TabsTrigger>
+          <TabsTrigger value="batch">
+            Batch
+          </TabsTrigger>
+          <TabsTrigger value="random">
+            Random
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="single">
           <SingleForm />
