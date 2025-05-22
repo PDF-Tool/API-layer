@@ -121,17 +121,11 @@ const canCreatePdf = computed(() => {
                 </div>
             </div>
         </div>
-        <!-- <div class="flex flex-col gap-4">
-            <div class="flex flex-col gap-2">
-                <Label for="checkHost">Check host connection</Label>
-                <div class="flex gap-2">
-                    <Input id="checkHost" name="checkHost" type="text" placeholder="Enter host address..." />
-                    <Button>
-                        <span>Check</span>
-                    </Button>
-                </div>
-            </div>
-        </div> -->
-        <Button :disabled="!canCreatePdf" @click="createAndPrintPdf">Generate PDF</Button>
+        <div class="flex gap-2 w-full items-center " v-if="formData.Pages && formData.SizePerPage">
+            <div class="font-bold">Estimated PDF size:</div>
+            {{ formData.Pages * formData.SizePerPage }} {{
+                formData.ByteUnit }}
+        </div>
+        <Button :disabled="!canCreatePdf" @click="createAndPrintPdf(formData)">Generate PDF</Button>
     </div>
 </template>

@@ -102,6 +102,11 @@ const canCreateBatchPdf = computed(() => {
                 </div>
             </div>
         </div>
+        <div class="flex gap-2 w-full items-center " v-if="batchFormData.NumberOfFiles && batchFormData.SizePerPage">
+            <div class="font-bold">Estimated PDF size:</div>
+            {{ batchFormData.NumberOfFiles * batchFormData.SizePerPage }} {{
+                batchFormData.ByteUnit }}
+        </div>
         <Button :disabled="!canCreateBatchPdf" @click="createAndPrintBatchPdf">Generate Batch PDFs</Button>
     </div>
 </template>
