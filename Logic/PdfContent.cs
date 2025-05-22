@@ -1,91 +1,51 @@
 using System;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace Logic
 {
     public class PDFContent
     {
-        // --- Size Estimation Constants ---
-        // These values NEED TUNING based on testing!
-        // Increase these if your estimates are consistently too low, decrease if too high.
+        private readonly int _pageCount;
+        private readonly int _targetSizePerPage;
+        private readonly string _generatedFileName;
 
-        // Overhead per page (page object, content stream, resources dictionary, maybe font refs)
-        public const int ESTIMATED_PDF_PAGE_OVERHEAD_BYTES = 750; // Increased starting estimate
-        // Fixed overhead (catalog, info, cross-references, trailer, basic doc structure)
-        public const int ESTIMATED_PDF_FIXED_OVERHEAD_BYTES = 3000; // Increased starting estimate
-
-        // Factor for embedding already compressed data (PNG stream object syntax, filters, etc.)
-        // Should be slightly > 1.0. Adjust if content size contribution is off.
-        public const float CONTENT_EMBEDDING_FACTOR = 1.03f;
-        // ---------------------------------------------------------------------------
-
-        private readonly byte[] _bitmapData;
-        private readonly int _width;
-        private readonly int _height;
-        private readonly int _targetContentBytes;
-
-        public PDFContent(int targetContentBytes)
+        public PDFContent(int pages, int targetSizePerPageBytes)
         {
-            if (targetContentBytes <= 0)
-            {
-                // Ensure we generate *something* even if the target is invalid,
-                // otherwise downstream calculations might fail.
-                Console.WriteLine($"Warning: Invalid target content size {targetContentBytes}. Generating minimal 1x1 pixel image.");
-                _targetContentBytes = 1; // Set a minimal valid internal target
-            }
-            else
-            {
-                _targetContentBytes = targetContentBytes;
-            }
-            
-            // Calculate dimensions for uncompressed bitmap
-            // Each pixel is 3 bytes (RGB)
-            int totalPixels = Math.Max(1, _targetContentBytes / 3);
-            _width = Math.Max(1, (int)Math.Sqrt(totalPixels));
-            _height = Math.Max(1, totalPixels / _width);
-            
-            _bitmapData = GenerateBitmapData();
+            _pageCount = pages;
+            _targetSizePerPage = targetSizePerPageBytes;
+            _generatedFileName = $"GeneratedPDF_{DateTime.Now:yyyyMMdd_HHmmss}_{_pageCount}pages_{_targetSizePerPage}bytes.pdf";
         }
 
-        private byte[] GenerateBitmapData()
+        public string GeneratedFileName => _generatedFileName;
+
+        public async Task GenerateAndWriteStreamAsync(Stream outputStream)
         {
-            try
+            using var document = new PdfSharpCore.Pdf.PdfDocument();
+            for (int i = 0; i < _pageCount; i++)
             {
-                // Create uncompressed bitmap data (RGB format)
-                byte[] bitmapData = new byte[_width * _height * 3];
-                var random = new Random();
+                var page = new PDFPage(_targetSizePerPage);
+                var pdfPage = document.AddPage();
+                pdfPage.Size = PdfSharpCore.PageSize.A4;
 
-                // Fill with random RGB data
-                for (int i = 0; i < bitmapData.Length; i += 3)
-                {
-                    random.NextBytes(bitmapData.AsSpan(i, 3));
-                }
+                using var gfx = PdfSharpCore.Drawing.XGraphics.FromPdfPage(pdfPage);
+                var pngBytes = page.GetUncompressedPngBytes();
+                using var ms = new MemoryStream(pngBytes);
+                using var image = PdfSharpCore.Drawing.XImage.FromStream(() => ms);
 
-                return bitmapData;
+                double scale = Math.Min(pdfPage.Width / image.PixelWidth, pdfPage.Height / image.PixelHeight);
+                double width = image.PixelWidth * scale;
+                double height = image.PixelHeight * scale;
+                double x = (pdfPage.Width - width) / 2;
+                double y = (pdfPage.Height - height) / 2;
+
+                gfx.DrawImage(image, x, y, width, height);
+
+                await Task.Yield();
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error generating bitmap data: {ex.Message}. Generating fallback 1x1 black pixel.");
-                return new byte[] { 0, 0, 0 }; // Single black pixel
-            }
+            document.Save(outputStream, false);
         }
-
-        public static long CalculateExpectedTotalSize(int pages, long totalActualContentDataBytes)
-        {
-            if (pages <= 0) return 0;
-
-            // Calculate overhead and embedded content size
-            long estimatedEmbeddedContentSize = (long)(totalActualContentDataBytes * CONTENT_EMBEDDING_FACTOR);
-            long totalOverhead = ESTIMATED_PDF_FIXED_OVERHEAD_BYTES + (long)pages * ESTIMATED_PDF_PAGE_OVERHEAD_BYTES;
-
-            long estimatedTotalSize = totalOverhead + estimatedEmbeddedContentSize;
-
-            return estimatedTotalSize;
-        }
-
-        public byte[] GetBitmapData() => _bitmapData;
-        public int Width => _width;
-        public int Height => _height;
-        public long ActualBitmapDataSize => _bitmapData?.Length ?? 0;
     }
 }
