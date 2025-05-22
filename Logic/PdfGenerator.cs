@@ -48,9 +48,6 @@ namespace Logic
                 document.Options.CompressContentStreams = true;
                 document.Options.NoCompression = false;
 
-                // Reuse a single MemoryStream for all pages
-                using var ms = new MemoryStream();
-
                 // Generate and write pages one at a time
                 for (int i = 0; i < _pageCount; i++)
                 {
@@ -61,11 +58,8 @@ namespace Logic
                     using var gfx = XGraphics.FromPdfPage(pdfPage);
                     var pngBytes = page.GetUncompressedPngBytes();
                     
-                    // Reset and reuse the MemoryStream
-                    ms.SetLength(0);
-                    ms.Write(pngBytes, 0, pngBytes.Length);
-                    ms.Position = 0;
-
+                    // Create a new MemoryStream for each page
+                    using var ms = new MemoryStream(pngBytes);
                     using var image = XImage.FromStream(() => ms);
 
                     double scale = Math.Min(pdfPage.Width / image.PixelWidth, pdfPage.Height / image.PixelHeight);
