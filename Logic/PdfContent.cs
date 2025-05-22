@@ -1,5 +1,6 @@
-using SkiaSharp;
 using System;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 
 namespace Logic
@@ -53,63 +54,32 @@ namespace Logic
             return estimatedTotalSize;
         }
 
-
         private static byte[] GenerateImageDataInternal(int targetBytes)
         {
-            int pixelCount = Math.Max(1, targetBytes / 3);
-            int dimension = Math.Max(1, (int)Math.Sqrt(pixelCount));
+            int width = 256;
+            int height = 256;
 
-            // Use RGB (no alpha) for slightly more predictable size
-            var info = new SKImageInfo(dimension, dimension, SKColorType.Rgb888x, SKAlphaType.Opaque);
-            byte[] generatedData = null;
-
-            try
+            using (Bitmap bmp = new Bitmap(width, height))
+            using (MemoryStream ms = new MemoryStream())
             {
-                using var surface = SKSurface.Create(info);
-                if (surface == null) throw new Exception($"SKSurface.Create returned null for {dimension}x{dimension}");
+                Random rand = new Random();
 
-                using var canvas = surface.Canvas;
-                canvas.Clear(SKColors.White); // Consistent white background
-
-                var random = new Random();
-                byte[] buffer = new byte[3];
-
-                for (int y = 0; y < dimension; y++)
+                for (int y = 0; y < height; y++)
                 {
-                    for (int x = 0; x < dimension; x++)
+                    for (int x = 0; x < width; x++)
                     {
-                        random.NextBytes(buffer);
-                        var color = new SKColor(buffer[0], buffer[1], buffer[2]);
-                        using var paint = new SKPaint { Color = color };
-                        canvas.DrawPoint(x, y, paint);
+                        Color randomColor = Color.FromArgb(
+                            rand.Next(256),
+                            rand.Next(256),
+                            rand.Next(256)
+                        );
+                        bmp.SetPixel(x, y, randomColor);
                     }
                 }
 
-                using var image = surface.Snapshot();
-                if (image == null) throw new Exception("surface.Snapshot returned null");
-
-                // Encode to PNG (Quality setting has minor effect on PNG size but keep 100)
-                using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-                if (data == null || data.IsEmpty) throw new Exception("image.Encode returned null or empty data");
-
-                generatedData = data.ToArray();
-
-                // Debug logging
-                // Console.WriteLine($" -> Target: {targetBytes} bytes, Actual PNG: {generatedData.Length} bytes (Dim: {dimension}x{dimension})");
+                bmp.Save(ms, ImageFormat.Png);
+                return ms.ToArray(); // Return image as byte array
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error generating image data (Target: {targetBytes} bytes): {ex.Message}. Generating fallback 1x1 black pixel PNG.");
-                // Fallback: Generate a minimal, predictable PNG (1x1 black pixel)
-                var fallbackInfo = new SKImageInfo(1, 1, SKColorType.Rgb888x, SKAlphaType.Opaque);
-                using var fallbackSurface = SKSurface.Create(fallbackInfo);
-                using var fallbackCanvas = fallbackSurface.Canvas;
-                fallbackCanvas.Clear(SKColors.Black);
-                using var fallbackImage = fallbackSurface.Snapshot();
-                using var fallbackData = fallbackImage.Encode(SKEncodedImageFormat.Png, 100);
-                generatedData = fallbackData.ToArray();
-            }
-            return generatedData;
         }
 
         public byte[] GetImageData()
