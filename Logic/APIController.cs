@@ -31,10 +31,13 @@ namespace Logic
                 Console.WriteLine($"Generating PDF for: {generatedFileName}");
                 
                 // Create a memory stream to hold the PDF data
-                using (var memoryStream = new MemoryStream())
+                var memoryStream = new MemoryStream();
+                try
                 {
                     // Generate PDF directly to the memory stream
                     await pdfGenerator.GenerateAndWriteStreamAsync(memoryStream);
+                    
+                    // Get the bytes after generation but before disposal
                     byte[] pdfBytes = memoryStream.ToArray();
 
                     if (pdfBytes == null || pdfBytes.Length == 0)
@@ -42,6 +45,10 @@ namespace Logic
                         throw new Exception("PDF generation resulted in null or empty data.");
                     }
                     Console.WriteLine($"PDF generated successfully ({pdfBytes.Length} bytes).");
+                }
+                finally
+                {
+                    memoryStream.Dispose();
                 }
 
                 return (true, "PDF generated successfully", generatedFileName);
@@ -87,7 +94,8 @@ namespace Logic
                     pdfGenerator = new PDFGenerator(pagesPerFile, targetPageSizeBytes);
                     currentFileName = pdfGenerator.GeneratedFileName;
 
-                    using (var memoryStream = new MemoryStream())
+                    var memoryStream = new MemoryStream();
+                    try
                     {
                         await pdfGenerator.GenerateAndWriteStreamAsync(memoryStream);
                         byte[] pdfBytes = memoryStream.ToArray();
@@ -97,6 +105,10 @@ namespace Logic
                             throw new Exception("PDF generation resulted in null or empty data.");
                         }
                         Console.WriteLine($"PDF generated successfully ({pdfBytes.Length} bytes).");
+                    }
+                    finally
+                    {
+                        memoryStream.Dispose();
                     }
 
                     successCount++;
