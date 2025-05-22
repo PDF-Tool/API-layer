@@ -77,10 +77,19 @@ namespace Logic
                     }
                 }
 
+                // Save to memory stream (for internal use)
                 bmp.Save(ms, ImageFormat.Png);
-                return ms.ToArray(); // Return image as byte array
+
+                // Save to disk for visual inspection
+                string filePath = Path.Combine(Environment.CurrentDirectory, "random_output.png");
+                bmp.Save(filePath, ImageFormat.Png);
+
+                Console.WriteLine($"Image saved to: {filePath}");
+
+                return ms.ToArray(); // Return byte array
             }
         }
+
 
         public byte[] GetImageData()
         {
