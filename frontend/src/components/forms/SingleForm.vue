@@ -13,10 +13,7 @@ import { pageFormats } from '@/lib/pageFormat'
 import { Label } from '@/components/ui/label'
 import { computed } from 'vue'
 import { usePdfStore } from '@/stores/pdfStore'
-<<<<<<< HEAD
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-=======
->>>>>>> parent of 513973d (Frontend cleanup)
 
 const { formData, createAndPrintPdf } = usePdfStore()
 
@@ -34,12 +31,14 @@ const canCreatePdf = computed(() => {
                         <Label for="size">Size per page</Label>
                     </TooltipTrigger>
                     <TooltipContent>
-                        <p>Select the amount of bytes per page in the PDF document, Select in the dropdown-menu in which size this needs to be.</p>
+                        <p>Select the amount of bytes per page in the PDF document, Select in the dropdown-menu in which
+                            size this needs to be.</p>
                     </TooltipContent>
                 </Tooltip>
             </TooltipProvider>
             <div class="flex gap-2">
-                <Input type="number" v-model="formData.SizePerPage" name="sizePerPage" placeholder="Select image size per page..." />
+                <Input type="number" v-model="formData.SizePerPage" name="sizePerPage"
+                    placeholder="Select image size per page..." />
                 <DropdownMenu>
                     <DropdownMenuTrigger as-child>
                         <Button class="min-w-[70px] select-none"> {{ formData.ByteUnit }}
@@ -57,7 +56,7 @@ const canCreatePdf = computed(() => {
             </div>
         </div>
         <div class="grid w-full items-center gap-2">
-                        <TooltipProvider>
+            <TooltipProvider>
                 <Tooltip>
                     <TooltipTrigger>
                         <Label for="size">Amount of pages</Label>
