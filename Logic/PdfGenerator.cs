@@ -68,17 +68,14 @@ namespace Logic
                         byte[] bitmapData = page.GetBitmapData();
                         
                         // Create a BMP header for the bitmap data
-                        using (var ms = new MemoryStream())
+                        var ms = new MemoryStream();
+                        WriteBmpHeader(ms, page.Width, page.Height);
+                        ms.Write(bitmapData, 0, bitmapData.Length);
+                        ms.Position = 0;
+
+                        // Create XImage from BMP data
+                        using (var image = XImage.FromStream(() => new MemoryStream(ms.ToArray())))
                         {
-                            // Write BMP header
-                            WriteBmpHeader(ms, page.Width, page.Height);
-                            // Write bitmap data
-                            ms.Write(bitmapData, 0, bitmapData.Length);
-                            ms.Position = 0;
-
-                            // Create XImage from BMP data
-                            var image = XImage.FromStream(() => ms);
-
                             // Calculate scaling to fit page width
                             double scaleRatio = pdfSharpPage.Width.Point / page.Width;
                             double drawWidth = pdfSharpPage.Width.Point;
@@ -93,12 +90,10 @@ namespace Logic
                     // Write the current state to the output stream
                     if (i == 0)
                     {
-                        // First page - write document header
                         document.Save(outputStream, true);
                     }
                     else
                     {
-                        // Subsequent pages - append to stream
                         document.Save(outputStream, true);
                     }
 
