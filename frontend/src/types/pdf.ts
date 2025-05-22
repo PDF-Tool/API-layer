@@ -19,6 +19,7 @@ export interface BatchPdfFields extends PdfFields {
 }
 export interface PerformancePdfFields extends PdfFields {
   Duration: number
+  PagesPerFile: number
 }
 
 export interface RandomPdfFields extends PdfFields {

@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label'
 import { computed, ref } from 'vue'
 import { usePdfStore } from '@/stores/pdfStore'
 import type { PdfFields } from '@/types/pdf'
-
+import Info from '@/components/info.vue'
 const { createAndPrintPdf } = usePdfStore()
 
 const formData = ref<PdfFields>({
@@ -32,7 +32,10 @@ const canCreatePdf = computed(() => {
 <template>
     <div class="flex flex-col gap-4">
         <div class="grid w-full items-center gap-2">
-            <Label for="size">Size per page</Label>
+            <Label for="size">Size per page
+                <Info
+                    text="Select the amount of bytes per page in the PDF document, Select in the dropdown-menu in which size this needs to be." />
+            </Label>
             <div class="flex gap-2">
                 <Input type="number" v-model="formData.SizePerPage" name="sizePerPage"
                     placeholder="Select image size per page..." />
@@ -53,11 +56,15 @@ const canCreatePdf = computed(() => {
             </div>
         </div>
         <div class="grid w-full items-center gap-2">
-            <Label for="pages">Amount of pages</Label>
+            <Label for="pages">Amount of pages
+                <Info text="Select the amount of pages you want the PDF document to be." />
+            </Label>
             <Input type="number" name="pages" v-model="formData.Pages" placeholder="Select amount of pages..." />
         </div>
         <div class="grid w-full items-center gap-2">
-            <Label for="pages">Host/IP</Label>
+            <Label for="pages">Host/IP
+                <Info text="Select the printer host address." />
+            </Label>
             <Input type="text" name="Host" v-model="formData.Host" placeholder="Select host address..." />
         </div>
         <Button :disabled="!canCreatePdf" @click="createAndPrintPdf(formData)">Generate PDF</Button>

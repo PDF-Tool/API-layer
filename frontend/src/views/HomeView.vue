@@ -38,7 +38,7 @@ import PerformanceForm from '@/components/forms/PerformanceForm.vue'
             Random
           </TabsTrigger>
           <TabsTrigger value="performance">
-            performance
+            Performance
           </TabsTrigger>
         </TabsList>
         <TabsContent value="single">

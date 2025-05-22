@@ -37,7 +37,10 @@ const canCreateBatchPdf = computed(() => {
                 placeholder="Select amount of documents..." />
         </div>
         <div class="grid w-full items-center gap-2">
-            <Label for="sizePerPage">Size per page</Label>
+            <Label for="sizePerPage">Size per page
+                <Info
+                    text="Select the amount of bytes per page in the PDF document, Select in the dropdown-menu in which size this needs to be." />
+            </Label>
             <div class="flex gap-2">
                 <Input type="number" v-model="batchFormData.SizePerPage" name="sizePerPage"
                     placeholder="Select image size per page..." />
@@ -58,12 +61,16 @@ const canCreateBatchPdf = computed(() => {
             </div>
         </div>
         <div class="grid w-full items-center gap-2">
-            <Label for="pagesPerFile">Amount of pages per document</Label>
+            <Label for="pagesPerFile">Amount of pages per document
+                <Info text="Select the amount of pages per documen." />
+            </Label>
             <Input type="number" name="pagesPerFile" v-model="batchFormData.PagesPerFile"
                 placeholder="Select amount of pages..." />
         </div>
         <div class="grid w-full items-center gap-2">
-            <Label for="pages">Host/IP</Label>
+            <Label for="pages">Host/IP
+                <Info text="Select the printer host address." />
+            </Label>
             <Input type="text" name="Host" v-model="batchFormData.Host" placeholder="Select host address..." />
         </div>
         <Button :disabled="!canCreateBatchPdf" @click="createAndPrintBatchPdf">Generate Batch PDFs</Button>

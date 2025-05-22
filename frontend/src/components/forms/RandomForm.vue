@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label'
 import { ref, computed } from 'vue'
 import { usePdfStore } from '@/stores/pdfStore'
 import type { RandomPdfFields } from '@/types/pdf'
+import Info from '@/components/info.vue'
 
 const { createAndPrintRandomPdf } = usePdfStore()
 
@@ -45,13 +46,19 @@ function getRandomInt(min: number, max: number) {
 <template>
     <div class="flex flex-col gap-4">
         <div class="grid w-full items-center gap-2">
-            <Label for="pages">Amount of documents</Label>
+            <Label for="pages">Amount of documents
+                <Info
+                    text="Select the amount of bytes per page in the PDF document, Select in the dropdown-menu in which size this needs to be." />
+            </Label>
             <Input type="number" v-model="formData.NumberOfFiles" name="numberOfFiles" min="1"
                 placeholder="Select amount of documents..." />
         </div>
 
         <div class="grid w-full items-center gap-2">
-            <Label>Size per page (random range)</Label>
+            <Label>Size per page (random range)
+                <Info
+                    text="Select the amount of bytes per page in the PDF document, Select in the dropdown-menu in which size this needs to be." />
+            </Label>
             <div class="flex gap-2">
                 <Input type="number" v-model="formData.SizeMin" min="1" placeholder="Min size..." />
                 <Input type="number" v-model="formData.SizeMax" min="1" placeholder="Max size..." />
@@ -79,7 +86,9 @@ function getRandomInt(min: number, max: number) {
             </div>
         </div>
         <div class="grid w-full items-center gap-2">
-            <Label for="pages">Host/IP</Label>
+            <Label for="pages">Host/IP
+                <Info text="Select the printer host address." />
+            </Label>
             <Input type="text" name="Host" v-model="formData.Host" placeholder="Select host address..." />
         </div>
         <Button :disabled="!canCreate" @click="createAndPrintRandomPdf(formData)">

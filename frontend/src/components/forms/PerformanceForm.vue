@@ -18,12 +18,13 @@ import type { PdfFields, PerformancePdfFields } from '@/types/pdf'
 const { createAndPrintPdf } = usePdfStore()
 
 const canCreatePdf = computed(() => {
-    return formData.value.Duration && formData.value.SizePerPage && formData.value.Host
+    return formData.value.Duration && formData.value.SizePerPage && formData.value.Host && formData.value.PagesPerFile
 })
 
 const formData = ref<PerformancePdfFields>({
     Duration: 0,
     SizePerPage: 1,
+    PagesPerFile: 1,
     ByteUnit: 'MB',
     Host: '',
 })
@@ -32,7 +33,10 @@ const formData = ref<PerformancePdfFields>({
 <template>
     <div class="flex flex-col gap-4">
         <div class="grid w-full items-center gap-2">
-            <Label for="size">Size per page</Label>
+            <Label for="size">Size per page
+                <Info
+                    text="Select the amount of bytes per page in the PDF document, Select in the dropdown-menu in which size this needs to be." />
+            </Label>
             <div class="flex gap-2">
                 <Input type="number" v-model="formData.SizePerPage" name="sizePerPage"
                     placeholder="Select image size per page..." />
@@ -53,11 +57,20 @@ const formData = ref<PerformancePdfFields>({
             </div>
         </div>
         <div class="grid w-full items-center gap-2">
+            <Label for="pagesPerFile">Amount of pages per document
+                <Info text="Select the amount of pages per documen." />
+            </Label>
+            <Input type="number" name="pagesPerFile" v-model="formData.PagesPerFile"
+                placeholder="Select amount of pages..." />
+        </div>
+        <div class="grid w-full items-center gap-2">
             <Label for="pages">Duration (in minutes)</Label>
             <Input type="number" name="pages" v-model="formData.Duration" placeholder="Select amount of pages..." />
         </div>
         <div class="grid w-full items-center gap-2">
-            <Label for="pages">Host/IP</Label>
+            <Label for="pages">Host/IP
+                <Info text="Select the printer host address." />
+            </Label>
             <Input type="text" name="Host" v-model="formData.Host" placeholder="Select host address..." />
         </div>
         <Button :disabled="!canCreatePdf" @click="createAndPrintPdf">Generate PDF</Button>
