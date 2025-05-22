@@ -1,6 +1,19 @@
 @PDF_API_HostAddress = https://localhost:7269/
+@baseUrl = http://localhost:5000
 
 GET {{PDF_API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+### Check test service status
+GET {{baseUrl}}/api/test/status
+Accept: application/json
+
+### Generate test PDF (1 page, 1MB)
+POST {{baseUrl}}/api/test/generate
+Accept: application/json
+
+### Generate test PDF (5 pages, 2MB each)
+POST {{baseUrl}}/api/test/generate?pages=5&sizePerPageMB=2
 Accept: application/json
 
 ###

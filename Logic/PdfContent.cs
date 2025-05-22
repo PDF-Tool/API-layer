@@ -1,4 +1,3 @@
-using SkiaSharp;
 using System;
 using System.IO;
 
@@ -20,8 +19,10 @@ namespace Logic
         public const float CONTENT_EMBEDDING_FACTOR = 1.03f;
         // ---------------------------------------------------------------------------
 
-        private byte[] _imageData;
-        private int _targetContentBytes;
+        private readonly byte[] _bitmapData;
+        private readonly int _width;
+        private readonly int _height;
+        private readonly int _targetContentBytes;
 
         public PDFContent(int targetContentBytes)
         {
@@ -36,9 +37,38 @@ namespace Logic
             {
                 _targetContentBytes = targetContentBytes;
             }
-            _imageData = GenerateImageDataInternal(_targetContentBytes);
+            
+            // Calculate dimensions for uncompressed bitmap
+            // Each pixel is 3 bytes (RGB)
+            int totalPixels = Math.Max(1, _targetContentBytes / 3);
+            _width = Math.Max(1, (int)Math.Sqrt(totalPixels));
+            _height = Math.Max(1, totalPixels / _width);
+            
+            _bitmapData = GenerateBitmapData();
         }
 
+        private byte[] GenerateBitmapData()
+        {
+            try
+            {
+                // Create uncompressed bitmap data (RGB format)
+                byte[] bitmapData = new byte[_width * _height * 3];
+                var random = new Random();
+
+                // Fill with random RGB data
+                for (int i = 0; i < bitmapData.Length; i += 3)
+                {
+                    random.NextBytes(bitmapData.AsSpan(i, 3));
+                }
+
+                return bitmapData;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error generating bitmap data: {ex.Message}. Generating fallback 1x1 black pixel.");
+                return new byte[] { 0, 0, 0 }; // Single black pixel
+            }
+        }
 
         public static long CalculateExpectedTotalSize(int pages, long totalActualContentDataBytes)
         {
@@ -53,70 +83,9 @@ namespace Logic
             return estimatedTotalSize;
         }
 
-
-        private static byte[] GenerateImageDataInternal(int targetBytes)
-        {
-            int pixelCount = Math.Max(1, targetBytes / 3);
-            int dimension = Math.Max(1, (int)Math.Sqrt(pixelCount));
-
-            // Use RGB (no alpha) for slightly more predictable size
-            var info = new SKImageInfo(dimension, dimension, SKColorType.Rgb888x, SKAlphaType.Opaque);
-            byte[] generatedData = null;
-
-            try
-            {
-                using var surface = SKSurface.Create(info);
-                if (surface == null) throw new Exception($"SKSurface.Create returned null for {dimension}x{dimension}");
-
-                using var canvas = surface.Canvas;
-                canvas.Clear(SKColors.White); // Consistent white background
-
-                var random = new Random();
-                byte[] buffer = new byte[3];
-
-                for (int y = 0; y < dimension; y++)
-                {
-                    for (int x = 0; x < dimension; x++)
-                    {
-                        random.NextBytes(buffer);
-                        var color = new SKColor(buffer[0], buffer[1], buffer[2]);
-                        using var paint = new SKPaint { Color = color };
-                        canvas.DrawPoint(x, y, paint);
-                    }
-                }
-
-                using var image = surface.Snapshot();
-                if (image == null) throw new Exception("surface.Snapshot returned null");
-
-                // Encode to PNG (Quality setting has minor effect on PNG size but keep 100)
-                using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-                if (data == null || data.IsEmpty) throw new Exception("image.Encode returned null or empty data");
-
-                generatedData = data.ToArray();
-
-                // Debug logging
-                // Console.WriteLine($" -> Target: {targetBytes} bytes, Actual PNG: {generatedData.Length} bytes (Dim: {dimension}x{dimension})");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error generating image data (Target: {targetBytes} bytes): {ex.Message}. Generating fallback 1x1 black pixel PNG.");
-                // Fallback: Generate a minimal, predictable PNG (1x1 black pixel)
-                var fallbackInfo = new SKImageInfo(1, 1, SKColorType.Rgb888x, SKAlphaType.Opaque);
-                using var fallbackSurface = SKSurface.Create(fallbackInfo);
-                using var fallbackCanvas = fallbackSurface.Canvas;
-                fallbackCanvas.Clear(SKColors.Black);
-                using var fallbackImage = fallbackSurface.Snapshot();
-                using var fallbackData = fallbackImage.Encode(SKEncodedImageFormat.Png, 100);
-                generatedData = fallbackData.ToArray();
-            }
-            return generatedData;
-        }
-
-        public byte[] GetImageData()
-        {
-            return _imageData;
-        }
-
-        public long ActualImageDataSize => _imageData?.Length ?? 0;
+        public byte[] GetBitmapData() => _bitmapData;
+        public int Width => _width;
+        public int Height => _height;
+        public long ActualBitmapDataSize => _bitmapData?.Length ?? 0;
     }
 }
