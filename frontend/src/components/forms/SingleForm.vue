@@ -13,6 +13,10 @@ import { pageFormats } from '@/lib/pageFormat'
 import { Label } from '@/components/ui/label'
 import { computed } from 'vue'
 import { usePdfStore } from '@/stores/pdfStore'
+<<<<<<< HEAD
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+=======
+>>>>>>> parent of 513973d (Frontend cleanup)
 
 const { formData, createAndPrintPdf } = usePdfStore()
 
@@ -24,7 +28,16 @@ const canCreatePdf = computed(() => {
 <template>
     <div class="flex flex-col gap-4">
         <div class="grid w-full items-center gap-2">
-            <Label for="size">Size per page</Label>
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger>
+                        <Label for="size">Size per page</Label>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Select the amount of bytes per page in the PDF document, Select in the dropdown-menu in which size this needs to be.</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
             <div class="flex gap-2">
                 <Input type="number" v-model="formData.SizePerPage" name="sizePerPage" placeholder="Select image size per page..." />
                 <DropdownMenu>
@@ -44,7 +57,16 @@ const canCreatePdf = computed(() => {
             </div>
         </div>
         <div class="grid w-full items-center gap-2">
-            <Label for="pages">Amount of pages</Label>
+                        <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger>
+                        <Label for="size">Amount of pages</Label>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Select the amount of pages you want the PDF document to be.</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
             <Input type="number" name="pages" v-model="formData.Pages" placeholder="Select amount of pages..." />
         </div>
         <div class="p-4 bg-primary rounded-lg border-input border shadow-sm flex flex-col gap-4">
