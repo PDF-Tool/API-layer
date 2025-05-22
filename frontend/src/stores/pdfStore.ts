@@ -5,8 +5,9 @@ import {
   generateAndPrintPdf,
   generateAndPrintBatchPdf,
   generateAndPrintRandomPdf,
+  generatePerformanceRun,
 } from '@/services/pdf-service'
-import type { PdfFields, BatchPdfFields, RandomPdfFields } from '@/types/pdf'
+import type { PdfFields, BatchPdfFields, RandomPdfFields, PerformancePdfFields } from '@/types/pdf'
 import { useWebSocketStore } from '@/stores/webSocketStore'
 
 // Rename store for clarity (optional)
@@ -48,8 +49,22 @@ export const usePdfStore = defineStore('pdf', () => {
     }
   }
 
+  async function createAndPrintPerformanceRun(data: PerformancePdfFields) {
+    const ws = useWebSocketStore()
+    try {
+      // Call the renamed service function
+      const result = await generatePerformanceRun({ ...data, User: ws.username })
+      console.log('Batch print job submitted:', result?.data)
+      return result
+    } catch (error) {
+      console.error('Failed to submit batch PDF for printing:', error)
+      return null
+    }
+  }
+
   return {
     createAndPrintPdf, // Renamed
+    createAndPrintPerformanceRun,
     createAndPrintBatchPdf, // Renamed
     createAndPrintRandomPdf, // Renamed
   }

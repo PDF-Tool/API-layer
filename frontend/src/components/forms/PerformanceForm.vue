@@ -15,14 +15,14 @@ import { computed, ref } from 'vue'
 import { usePdfStore } from '@/stores/pdfStore'
 import type { PdfFields, PerformancePdfFields } from '@/types/pdf'
 
-const { createAndPrintPdf } = usePdfStore()
+const { createAndPrintPerformanceRun } = usePdfStore()
 
 const canCreatePdf = computed(() => {
-    return formData.value.Duration && formData.value.SizePerPage && formData.value.Host && formData.value.PagesPerFile
+    return formData.value.amountOfTime && formData.value.SizePerPage && formData.value.Host && formData.value.PagesPerFile
 })
 
 const formData = ref<PerformancePdfFields>({
-    Duration: 0,
+    amountOfTime: 0,
     SizePerPage: 1,
     PagesPerFile: 1,
     ByteUnit: 'MB',
@@ -65,7 +65,7 @@ const formData = ref<PerformancePdfFields>({
         </div>
         <div class="grid w-full items-center gap-2">
             <Label for="pages">Duration (in minutes)</Label>
-            <Input type="number" name="pages" v-model="formData.Duration" placeholder="Select amount of pages..." />
+            <Input type="number" name="pages" v-model="formData.amountOfTime" placeholder="Select amount of pages..." />
         </div>
         <div class="grid w-full items-center gap-2">
             <Label for="pages">Host/IP
@@ -73,6 +73,6 @@ const formData = ref<PerformancePdfFields>({
             </Label>
             <Input type="text" name="Host" v-model="formData.Host" placeholder="Select host address..." />
         </div>
-        <Button :disabled="!canCreatePdf" @click="createAndPrintPdf">Generate PDF</Button>
+        <Button :disabled="!canCreatePdf" @click="createAndPrintPerformanceRun(formData)">Generate PDF</Button>
     </div>
 </template>

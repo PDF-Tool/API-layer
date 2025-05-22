@@ -1,5 +1,5 @@
 import Api from '@/plugins/axios'
-import type { BatchPdfFields, PdfFields, RandomPdfFields } from '@/types/pdf' // Assuming RandomPdfFields type exists
+import type { BatchPdfFields, PdfFields, RandomPdfFields, PerformancePdfFields } from '@/types/pdf' // Assuming RandomPdfFields type exists
 
 const api = new Api()
 
@@ -31,6 +31,18 @@ export async function generateAndPrintRandomPdf(body: RandomPdfFields) {
   try {
     // Call the new endpoint
     const response = await api.post('/PDFGenerator/GenerateRandomAndPrint', body)
+    return response
+  } catch (error) {
+    console.error('Error submitting random print job:', error)
+    throw error
+  }
+}
+
+export async function generatePerformanceRun(body: PerformancePdfFields) {
+  // Use specific type if available
+  try {
+    // Call the new endpoint
+    const response = await api.post('/PDFGenerator/GeneratePerformanceRun', body)
     return response
   } catch (error) {
     console.error('Error submitting random print job:', error)

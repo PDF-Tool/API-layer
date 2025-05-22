@@ -18,7 +18,7 @@ export interface BatchPdfFields extends PdfFields {
   PagesPerFile: number
 }
 export interface PerformancePdfFields extends PdfFields {
-  Duration: number
+  amountOfTime: number
   PagesPerFile: number
 }
 
