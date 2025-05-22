@@ -11,11 +11,12 @@ using System.Drawing.Imaging;
 
 namespace Logic
 {
-    public class PDFGenerator
+    public class PDFGenerator : IDisposable
     {
         private readonly int _pageCount;
         private readonly int _targetSizePerPage;
         private readonly string _generatedFileName;
+        private bool _disposed;
 
         public PDFGenerator(int pages, int targetSizePerPageBytes)
         {
@@ -31,6 +32,9 @@ namespace Logic
 
         public async Task GenerateAndWriteStreamAsync(Stream outputStream)
         {
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(PDFGenerator));
+
             if (outputStream == null || !outputStream.CanWrite)
             {
                 throw new ArgumentException("Output stream must be valid and writable.", nameof(outputStream));
@@ -51,7 +55,7 @@ namespace Logic
                 // Generate and write pages one at a time
                 for (int i = 0; i < _pageCount; i++)
                 {
-                    var page = new PDFPage(_targetSizePerPage);
+                    using var page = new PDFPage(_targetSizePerPage);
                     var pdfPage = document.AddPage();
                     pdfPage.Size = PdfSharpCore.PageSize.A4;
 
@@ -70,6 +74,13 @@ namespace Logic
 
                     gfx.DrawImage(image, x, y, width, height);
 
+                    // Force garbage collection after each page
+                    if (i % 5 == 0) // Every 5 pages
+                    {
+                        GC.Collect();
+                        GC.WaitForPendingFinalizers();
+                    }
+
                     await Task.Yield();
                 }
 
@@ -87,6 +98,9 @@ namespace Logic
 
         public async Task<string> GenerateAndSaveLocally()
         {
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(PDFGenerator));
+
             string outputDirectory = Path.Combine(Environment.CurrentDirectory, "GeneratedPDFs");
             Directory.CreateDirectory(outputDirectory);
             string outputPath = Path.Combine(outputDirectory, _generatedFileName);
@@ -116,6 +130,20 @@ namespace Logic
                 Console.WriteLine($"Error saving PDF locally: {ex.Message}");
                 throw;
             }
+        }
+
+        public void Dispose()
+        {
+            if (!_disposed)
+            {
+                _disposed = true;
+                GC.SuppressFinalize(this);
+            }
+        }
+
+        ~PDFGenerator()
+        {
+            Dispose();
         }
     }
 }

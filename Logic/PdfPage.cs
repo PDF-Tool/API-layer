@@ -5,10 +5,11 @@ using System.IO;
 
 namespace Logic
 {
-    public class PDFPage
+    public class PDFPage : IDisposable
     {
         private readonly int _targetSizeBytes;
         private readonly byte[] _bitmapData;
+        private bool _disposed;
 
         public PDFPage(int targetSizeBytes)
         {
@@ -22,6 +23,9 @@ namespace Logic
 
         public byte[] GetUncompressedPngBytes()
         {
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(PDFPage));
+
             int pixels = Math.Max(1, _targetSizeBytes / 3);
             int width = Math.Max(1, (int)Math.Sqrt(pixels));
             int height = Math.Max(1, pixels / width);
@@ -53,6 +57,20 @@ namespace Logic
                 if (enc.FormatID == ImageFormat.Png.Guid)
                     return enc;
             throw new Exception("PNG encoder not found");
+        }
+
+        public void Dispose()
+        {
+            if (!_disposed)
+            {
+                _disposed = true;
+                GC.SuppressFinalize(this);
+            }
+        }
+
+        ~PDFPage()
+        {
+            Dispose();
         }
     }
 }
