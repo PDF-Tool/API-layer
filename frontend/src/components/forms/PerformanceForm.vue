@@ -13,19 +13,19 @@ import { pageFormats } from '@/lib/pageFormat'
 import { Label } from '@/components/ui/label'
 import { computed, ref } from 'vue'
 import { usePdfStore } from '@/stores/pdfStore'
-import type { PdfFields } from '@/types/pdf'
+import type { PdfFields, PerformancePdfFields } from '@/types/pdf'
 
 const { createAndPrintPdf } = usePdfStore()
 
-const formData = ref<PdfFields>({
-    Pages: 1,
+const canCreatePdf = computed(() => {
+    return formData.value.Duration && formData.value.SizePerPage && formData.value.Host
+})
+
+const formData = ref<PerformancePdfFields>({
+    Duration: 0,
     SizePerPage: 1,
     ByteUnit: 'MB',
     Host: '',
-})
-
-const canCreatePdf = computed(() => {
-    return formData.value?.Pages && formData.value?.SizePerPage && formData.value?.Host
 })
 </script>
 
@@ -53,13 +53,13 @@ const canCreatePdf = computed(() => {
             </div>
         </div>
         <div class="grid w-full items-center gap-2">
-            <Label for="pages">Amount of pages</Label>
-            <Input type="number" name="pages" v-model="formData.Pages" placeholder="Select amount of pages..." />
+            <Label for="pages">Duration (in minutes)</Label>
+            <Input type="number" name="pages" v-model="formData.Duration" placeholder="Select amount of pages..." />
         </div>
         <div class="grid w-full items-center gap-2">
             <Label for="pages">Host/IP</Label>
             <Input type="text" name="Host" v-model="formData.Host" placeholder="Select host address..." />
         </div>
-        <Button :disabled="!canCreatePdf" @click="createAndPrintPdf(formData)">Generate PDF</Button>
+        <Button :disabled="!canCreatePdf" @click="createAndPrintPdf">Generate PDF</Button>
     </div>
 </template>

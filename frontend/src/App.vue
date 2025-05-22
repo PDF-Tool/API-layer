@@ -33,9 +33,6 @@ onMounted(() => {
       <div class="w-full">
         <ProgressContainer />
       </div>
-      <div class="w-full">
-        <PrinterStatus />
-      </div>
     </div>
   </main>
 </template>
