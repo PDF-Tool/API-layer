@@ -9,7 +9,8 @@ using Logic;
 using System.IO;
 using System.Net.Mime;
 using Microsoft.Extensions.Configuration; // Required for IConfiguration
-using System.Linq; // Required for LINQ in batch response
+using System.Linq;
+using System.Diagnostics; // Required for LINQ in batch response
 
 namespace PDF_API.Controllers
 {
@@ -21,11 +22,6 @@ namespace PDF_API.Controllers
         private readonly MessagingService _messagingService;
         private readonly Logic.InputService _inputService;
         private readonly IConfiguration _configuration; // Inject configuration
-
-        // LPR Settings Keys (match your appsettings.json)
-        private const string LprHostKey = "LprSettings:Host";
-        private const string LprQueueKey = "LprSettings:Queue";
-        private const string LprPortKey = "LprSettings:Port";
 
 
         public PDFGeneratorController(
@@ -58,21 +54,21 @@ namespace PDF_API.Controllers
             // Note: Format, Width, Height, MetricUnit from request are currently unused by generator logic directly
 
             // 2. Get LPR Configuration
-            string lprHost = _configuration[LprHostKey];
-            string lprQueue = _configuration[LprQueueKey];
-            if (!int.TryParse(_configuration[LprPortKey], out int lprPort))
+            string lprHost = request.Host;
+            string lprQueue = "myque";
+            if (!int.TryParse(":", out int lprPort))
             {
                 lprPort = 515; // Default LPR port
             }
 
             if (string.IsNullOrWhiteSpace(lprHost) || string.IsNullOrWhiteSpace(lprQueue))
             {
-                 return StatusCode(500, new GenerateStartResponse { Status = false, Message = "LPR Host or Queue not configured on the server." });
+                return StatusCode(500, new GenerateStartResponse { Status = false, Message = "LPR Host or Queue not configured on the server." });
             }
 
-             // 3. Estimate Size (Optional but good for initial response)
-             long estimatedSize = APIController.EstimateSize(pages, sizePerPage, byteUnit);
-             double estimatedSizeConverted = estimatedSize >= 0 ? APIController.ConvertBytesToUnit(estimatedSize, byteUnit) : 0;
+            // 3. Estimate Size (Optional but good for initial response)
+            long estimatedSize = APIController.EstimateSize(pages, sizePerPage, byteUnit);
+            double estimatedSizeConverted = estimatedSize >= 0 ? APIController.ConvertBytesToUnit(estimatedSize, byteUnit) : 0;
 
             // 4. Prepare Initial Response & Start Background Task
             string processId = Guid.NewGuid().ToString();
@@ -115,13 +111,13 @@ namespace PDF_API.Controllers
 
                     if (success)
                     {
-                         await _messagingService.UpdateProcessProgress(processId, 100, "Print job sent successfully.");
-                         await _messagingService.CompleteProcess(processId, resultMessage, resultDetails);
+                        await _messagingService.UpdateProcessProgress(processId, 100, "Print job sent successfully.");
+                        await _messagingService.CompleteProcess(processId, resultMessage, resultDetails);
                     }
                     else
                     {
-                         await _messagingService.UpdateProcessProgress(processId, 100, "Print job failed."); // Or keep progress lower
-                         await _messagingService.FailProcess(processId, resultMessage, resultDetails);
+                        await _messagingService.UpdateProcessProgress(processId, 100, "Print job failed."); // Or keep progress lower
+                        await _messagingService.FailProcess(processId, resultMessage, resultDetails);
                     }
                 }
                 catch (Exception ex)
@@ -143,7 +139,7 @@ namespace PDF_API.Controllers
         [HttpPost]
         public async Task<IActionResult> GenerateBatchAndPrintAsync([FromBody] BatchRequestModel request)
         {
-             // 1. Validate Input
+            // 1. Validate Input
             if (request.NumberOfFiles == null || request.NumberOfFiles <= 0) return BadRequest("NumberOfFiles must be greater than zero.");
             if (request.PagesPerFile == null || request.PagesPerFile <= 0) return BadRequest("PagesPerFile must be greater than zero.");
             if (request.SizePerPage == null || request.SizePerPage <= 0) return BadRequest("SizePerPage must be greater than zero.");
@@ -160,14 +156,14 @@ namespace PDF_API.Controllers
             int numberOfFiles = request.NumberOfFiles.Value;
 
             // 2. Get LPR Configuration
-             string lprHost = _configuration[LprHostKey];
-             string lprQueue = _configuration[LprQueueKey];
-             if (!int.TryParse(_configuration[LprPortKey], out int lprPort)) { lprPort = 515; }
+            string lprHost = request.Host;
+            string lprQueue = "myque";
+            if (!int.TryParse(":", out int lprPort)) { lprPort = 515; }
 
-             if (string.IsNullOrWhiteSpace(lprHost) || string.IsNullOrWhiteSpace(lprQueue))
-             {
-                 return StatusCode(500, new BatchGenerateStartResponse { Status = false, Message = "LPR Host or Queue not configured on the server." });
-             }
+            if (string.IsNullOrWhiteSpace(lprHost) || string.IsNullOrWhiteSpace(lprQueue))
+            {
+                return StatusCode(500, new BatchGenerateStartResponse { Status = false, Message = "LPR Host or Queue not configured on the server." });
+            }
 
             // 3. Estimate Size (Optional)
             long estimatedSizePerFile = APIController.EstimateSize(pagesPerFile, sizePerPage, byteUnit);
@@ -184,7 +180,7 @@ namespace PDF_API.Controllers
             };
 
             // Notify client
-             await _messagingService.StartProcess(processId, "Batch PDF Print Job", request.User ?? "Anonymous", new Dictionary<string, object>
+            await _messagingService.StartProcess(processId, "Batch PDF Print Job", request.User ?? "Anonymous", new Dictionary<string, object>
              {
                  { "action", "GenerateBatchAndPrint" },
                  { "numberOfFiles", numberOfFiles }, { "pagesPerFile", pagesPerFile }, { "sizePerPage", sizePerPage }, { "byteUnit", byteUnit },
@@ -194,72 +190,72 @@ namespace PDF_API.Controllers
             // Run batch in background
             _ = Task.Run(async () =>
             {
-                 string resultMessage = "Batch print job failed.";
-                 bool overallSuccess = false;
-                 var resultDetails = new Dictionary<string, object>();
+                string resultMessage = "Batch print job failed.";
+                bool overallSuccess = false;
+                var resultDetails = new Dictionary<string, object>();
 
-                 try
-                 {
-                      await _messagingService.UpdateProcessProgress(processId, 10, "Initializing batch print job...");
+                try
+                {
+                    await _messagingService.UpdateProcessProgress(processId, 10, "Initializing batch print job...");
 
-                      // Call the logic controller method for batch printing
-                      var (batchSuccess, successCount, totalFiles, message) = await _logicApiController.HandleBatchPrintRequestAsync(
-                          numberOfFiles, pagesPerFile, sizePerPage, byteUnit, lprHost, lprQueue, lprPort);
+                    // Call the logic controller method for batch printing
+                    var (batchSuccess, successCount, totalFiles, message) = await _logicApiController.HandleBatchPrintRequestAsync(
+                        numberOfFiles, pagesPerFile, sizePerPage, byteUnit, lprHost, lprQueue, lprPort);
 
-                      overallSuccess = batchSuccess;
-                      resultMessage = message;
-                      resultDetails.Add("totalFiles", totalFiles);
-                      resultDetails.Add("successCount", successCount);
-                      resultDetails.Add("failureCount", totalFiles - successCount);
+                    overallSuccess = batchSuccess;
+                    resultMessage = message;
+                    resultDetails.Add("totalFiles", totalFiles);
+                    resultDetails.Add("successCount", successCount);
+                    resultDetails.Add("failureCount", totalFiles - successCount);
 
-                      if (overallSuccess) // Only true if successCount == totalFiles
-                      {
-                           await _messagingService.UpdateProcessProgress(processId, 100, "Batch print job completed successfully.");
-                           await _messagingService.CompleteProcess(processId, resultMessage, resultDetails);
-                      }
-                      else // Partial or total failure
-                      {
-                           await _messagingService.UpdateProcessProgress(processId, 100, "Batch print job finished with errors."); // Or calculate percentage
-                           await _messagingService.FailProcess(processId, resultMessage, resultDetails);
-                      }
-                 }
-                 catch (Exception ex)
-                 {
-                      Console.WriteLine($"Background Batch Print Task Error (Process ID: {processId}): {ex.ToString()}");
-                      resultMessage = $"An internal error occurred during batch print: {ex.Message}";
-                      resultDetails.Add("error", ex.Message);
-                      await _messagingService.FailProcess(processId, resultMessage, resultDetails);
-                 }
+                    if (overallSuccess) // Only true if successCount == totalFiles
+                    {
+                        await _messagingService.UpdateProcessProgress(processId, 100, "Batch print job completed successfully.");
+                        await _messagingService.CompleteProcess(processId, resultMessage, resultDetails);
+                    }
+                    else // Partial or total failure
+                    {
+                        await _messagingService.UpdateProcessProgress(processId, 100, "Batch print job finished with errors."); // Or calculate percentage
+                        await _messagingService.FailProcess(processId, resultMessage, resultDetails);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Background Batch Print Task Error (Process ID: {processId}): {ex.ToString()}");
+                    resultMessage = $"An internal error occurred during batch print: {ex.Message}";
+                    resultDetails.Add("error", ex.Message);
+                    await _messagingService.FailProcess(processId, resultMessage, resultDetails);
+                }
             });
 
             return Ok(startResponse); // Return immediately
         }
 
 
-         // --- Endpoint for Random PDF Generation and Printing ---
+        // --- Endpoint for Random PDF Generation and Printing ---
         [Route("GenerateRandomAndPrint")] // Renamed endpoint
         [HttpPost]
         public async Task<IActionResult> GenerateRandomAndPrintAsync([FromBody] RandomRequestModel request)
         {
             // 1. Basic Validation & Random Value Generation
-             int sizeMin = request.SizeMin;
-             int sizeMax = request.SizeMax;
-             int pageMin = request.PageMin;
-             int pageMax = request.PageMax;
-             string mode = request.Mode ?? "single";
-             int numberOfFiles = request.NumberOfFiles ?? 1;
-             // Use InputService for cleansing units
-             string byteUnit = _inputService.CleanseInputs(null, null, request.ByteUnit, null).ByteUnit ?? "MB";
-             string metricUnit = _inputService.CleanseInputs(null, null, null, request.MetricUnit).MetricUnit ?? "mm";
-             string user = request.User ?? "Anonymous";
+            int sizeMin = request.SizeMin;
+            int sizeMax = request.SizeMax;
+            int pageMin = request.PageMin;
+            int pageMax = request.PageMax;
+            string mode = request.Mode ?? "single";
+            int numberOfFiles = request.NumberOfFiles ?? 1;
+            // Use InputService for cleansing units
+            string byteUnit = _inputService.CleanseInputs(null, null, request.ByteUnit, null).ByteUnit ?? "MB";
+            string metricUnit = _inputService.CleanseInputs(null, null, null, request.MetricUnit).MetricUnit ?? "mm";
+            string user = request.User ?? "Anonymous";
 
-             var randomizer = new Logic.PDFRandomizer();
-             int sizePerPage, pages;
-             try { (sizePerPage, pages) = randomizer.GenerateRandomValues(sizeMin, sizeMax, pageMin, pageMax); }
-             catch (ArgumentException ex) { return BadRequest($"Invalid random generation range: {ex.Message}"); }
+            var randomizer = new Logic.PDFRandomizer();
+            int sizePerPage, pages;
+            try { (sizePerPage, pages) = randomizer.GenerateRandomValues(sizeMin, sizeMax, pageMin, pageMax); }
+            catch (ArgumentException ex) { return BadRequest($"Invalid random generation range: {ex.Message}"); }
 
 
-             // 2. Delegate to Single or Batch Print Endpoint Logic
+            // 2. Delegate to Single or Batch Print Endpoint Logic
             if (mode.Equals("batch", StringComparison.OrdinalIgnoreCase))
             {
                 var batchRequest = new Models.RequestModels.BatchRequestModel
@@ -269,7 +265,8 @@ namespace PDF_API.Controllers
                     SizePerPage = sizePerPage,
                     ByteUnit = byteUnit,
                     MetricUnit = metricUnit, // Pass along if needed by model
-                    User = user
+                    User = user,
+                    Host = request.Host
                 };
                 // Call the batch print method directly
                 return await GenerateBatchAndPrintAsync(batchRequest);
@@ -283,12 +280,160 @@ namespace PDF_API.Controllers
                     ByteUnit = byteUnit,
                     MetricUnit = metricUnit, // Pass along if needed
                     Format = "A4", // Currently unused by generation logic
-                    User = user
+                    User = user,
+                    Host = request.Host
                 };
-                 // Call the single print method directly
-                 return await GenerateAndPrintAsync(singleRequest);
+                // Call the single print method directly
+                return await GenerateAndPrintAsync(singleRequest);
             }
         }
+
+        [Route("GeneratePerformanceRun")]
+        [HttpPost]
+        public async Task<IActionResult> GeneratePerformanceRunAsync([FromBody] PerformanceRunRequestModel request)
+        {
+            // Validate input
+            if (request.AmountOfTime <= 0)
+            {
+                return BadRequest("AmountOfTime must be greater than zero.");
+            }
+
+            // Convert minutes to milliseconds
+            int amountOfTimeMilliseconds = request.AmountOfTime * 60 * 1000;
+
+            // Generate a process ID for tracking
+            string processId = Guid.NewGuid().ToString();
+
+            // Prepare initial response
+            var startResponse = new GenerateStartResponse
+            {
+                Status = true,
+                ProcessId = processId,
+                Message = $"Performance test started. Will run for {request.AmountOfTime} minutes."
+            };
+
+            // Notify client via SignalR that process started
+            await _messagingService.StartProcess(processId, "Performance Test", request.User ?? "Anonymous", new Dictionary<string, object>
+            {
+                { "action", "GeneratePerformanceRun" },
+                { "durationMinutes", request.AmountOfTime },
+                { "pagesPerFile", request.PagesPerFile },
+                { "sizePerPage", request.SizePerPage }
+            });
+
+            // Run the performance test in the background
+            _ = Task.Run(async () =>
+            {
+                int taskCount = 0;
+                int errorCount = 0;
+                var stopwatch = Stopwatch.StartNew();
+                bool cancelled = false;
+
+                try
+                {
+                    // Report initial progress
+                    await _messagingService.UpdateProcessProgress(processId, 0, "Starting performance test...");
+
+                    using var cts = new CancellationTokenSource();
+                    // Set timeout slightly higher than the requested duration as a safety measure
+                    cts.CancelAfter(amountOfTimeMilliseconds);
+
+                    while (stopwatch.ElapsedMilliseconds < amountOfTimeMilliseconds)
+                    {
+                        if (cts.Token.IsCancellationRequested)
+                        {
+                            cancelled = true;
+                            break;
+                        }
+
+                        try
+                        {
+                            var singleRequest = new Models.RequestModels.RequestModel
+                            {
+                                Pages = request.PagesPerFile,
+                                SizePerPage = request.SizePerPage,
+                                ByteUnit = request.ByteUnit,
+                                MetricUnit = request.MetricUnit,
+                                User = request.User,
+                                Host = request.Host
+                            };
+
+                            // Call the generate and print method
+                            await GenerateAndPrintAsync(singleRequest);
+                            taskCount++;
+
+                            // Report progress every 5 tasks or 10 seconds, whichever comes first
+                            if (taskCount % 5 == 0 || stopwatch.ElapsedMilliseconds % 10000 < 100)
+                            {
+                                int progressPercent = (int)((stopwatch.ElapsedMilliseconds * 100) / amountOfTimeMilliseconds);
+                                await _messagingService.UpdateProcessProgress(
+                                    processId,
+                                    progressPercent,
+                                    $"Completed {taskCount} tasks ({errorCount} errors). {progressPercent}% of time elapsed."
+                                );
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            errorCount++;
+                            Console.Error.WriteLine($"Error in GenerateAndPrintAsync: {ex.Message}");
+
+                            // Don't overwhelm the system on repeated failures - add a small delay
+                            if (errorCount > taskCount)
+                            {
+                                await Task.Delay(1000, cts.Token);
+                            }
+                        }
+                    }
+
+                    // Report final results
+                    var resultDetails = new Dictionary<string, object>
+                    {
+                        { "totalTasks", taskCount },
+                        { "errorCount", errorCount },
+                        { "durationMs", stopwatch.ElapsedMilliseconds },
+                        { "tasksPerMinute", taskCount / (stopwatch.ElapsedMilliseconds / 60000.0) }
+                    };
+
+                    if (cancelled)
+                    {
+                        await _messagingService.FailProcess(
+                            processId,
+                            $"Performance test was cancelled. Completed {taskCount} tasks with {errorCount} errors.",
+                            resultDetails
+                        );
+                    }
+                    else
+                    {
+                        await _messagingService.CompleteProcess(
+                            processId,
+                            $"Performance test completed. Ran {taskCount} tasks with {errorCount} errors in {request.AmountOfTime} minutes.",
+                            resultDetails
+                        );
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Handle any unexpected errors in the background task
+                    Console.Error.WriteLine($"Performance Test Error: {ex}");
+                    await _messagingService.FailProcess(
+                        processId,
+                        $"Performance test failed: {ex.Message}",
+                        new Dictionary<string, object>
+                        {
+                    { "error", ex.Message },
+                    { "tasksCompleted", taskCount },
+                    { "errorCount", errorCount + 1 }
+                        }
+                    );
+                }
+            });
+
+            // Return immediately with the process ID
+            return Ok(startResponse);
+        }
+
+
 
         // --- Remove GenerateAndStreamPdf endpoint ---
         // [Route("GenerateAndStream")] ... removed ...
