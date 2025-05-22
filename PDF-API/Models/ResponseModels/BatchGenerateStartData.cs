@@ -4,9 +4,6 @@ namespace PDF_API.Models.ResponseModels;
 
 public class BatchGenerateStartData
 {
-    [JsonPropertyName("estimatedSizePerFile")]
-    public long EstimatedSizePerFile { get; set; }
-
     [JsonPropertyName("byteUnit")]
     public string ByteUnit { get; set; } = string.Empty;
 

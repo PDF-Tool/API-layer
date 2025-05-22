@@ -26,8 +26,7 @@ namespace PDF_API.Controllers
                     Message = "PDF generated successfully",
                     FilePath = savedPath,
                     Pages = pages,
-                    SizePerPageMB = sizePerPageMB,
-                    EstimatedTotalSizeMB = generator.EstimatedTotalSizeBytes / (1024.0 * 1024.0)
+                    SizePerPageMB = sizePerPageMB
                 });
             }
             catch (Exception ex)

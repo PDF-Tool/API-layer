@@ -27,6 +27,8 @@ namespace Logic
             _generatedFileName = $"GeneratedPDF_{DateTime.Now:yyyyMMdd_HHmmss}_{_pageCount}pages_{_targetSizePerPage}bytes.pdf";
         }
 
+        public string GeneratedFileName => _generatedFileName;
+
         public async Task GenerateAndWriteStreamAsync(Stream outputStream)
         {
             if (outputStream == null || !outputStream.CanWrite)
@@ -46,6 +48,9 @@ namespace Logic
                 document.Options.CompressContentStreams = true;
                 document.Options.NoCompression = false;
 
+                // Reuse a single MemoryStream for all pages
+                using var ms = new MemoryStream();
+
                 // Generate and write pages one at a time
                 for (int i = 0; i < _pageCount; i++)
                 {
@@ -55,7 +60,12 @@ namespace Logic
 
                     using var gfx = XGraphics.FromPdfPage(pdfPage);
                     var pngBytes = page.GetUncompressedPngBytes();
-                    using var ms = new MemoryStream(pngBytes);
+                    
+                    // Reset and reuse the MemoryStream
+                    ms.SetLength(0);
+                    ms.Write(pngBytes, 0, pngBytes.Length);
+                    ms.Position = 0;
+
                     using var image = XImage.FromStream(() => ms);
 
                     double scale = Math.Min(pdfPage.Width / image.PixelWidth, pdfPage.Height / image.PixelHeight);
@@ -66,14 +76,11 @@ namespace Logic
 
                     gfx.DrawImage(image, x, y, width, height);
 
-                    // Allow other tasks to run
                     await Task.Yield();
                 }
 
                 document.Save(outputStream, false);
-
                 stopwatch.Stop();
-
                 Console.WriteLine($"PDF generation complete ({stopwatch.ElapsedMilliseconds} ms)");
             }
             catch (Exception ex)

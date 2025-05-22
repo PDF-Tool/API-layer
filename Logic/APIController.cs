@@ -42,35 +42,14 @@ namespace Logic
                         throw new Exception("PDF generation resulted in null or empty data.");
                     }
                     Console.WriteLine($"PDF generated successfully ({pdfBytes.Length} bytes).");
-
-                    // 2. Send to LPR Server
-                    var lprClient = new LprClient(lprHost, lprQueue, lprPort);
-                    Console.WriteLine($"Attempting to send '{generatedFileName}' to LPR server {lprHost}:{lprPort} queue '{lprQueue}'...");
-
-                    await lprClient.SendPrintJobAsync(pdfBytes, generatedFileName);
-                    Console.WriteLine($"Successfully sent '{generatedFileName}' to LPR server.");
-                    return (true, $"Print job '{generatedFileName}' sent successfully.", generatedFileName);
                 }
-            }
-            catch (ArgumentException argEx)
-            {
-                Console.WriteLine($"Configuration Error: {argEx.Message}");
-                return (false, $"Configuration Error: {argEx.Message}", pdfGenerator?.GeneratedFileName ?? generatedFileName);
-            }
-            catch (InvalidOperationException opEx)
-            {
-                Console.WriteLine($"PDF Generation Error: {opEx.Message}");
-                return (false, $"PDF Generation Error: {opEx.Message}", pdfGenerator?.GeneratedFileName ?? generatedFileName);
-            }
-            catch (LprCommunicationException lprEx)
-            {
-                Console.WriteLine($"LPR Error sending '{generatedFileName}': {lprEx.Message}");
-                return (false, $"LPR Error: {lprEx.Message}", generatedFileName);
+
+                return (true, "PDF generated successfully", generatedFileName);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error during print request for '{generatedFileName}': {ex.ToString()}");
-                return (false, $"Failed to process print job '{generatedFileName}': {ex.Message}", generatedFileName);
+                Console.WriteLine($"Error in HandlePrintRequestAsync: {ex.Message}");
+                return (false, $"Error: {ex.Message}", generatedFileName);
             }
         }
 
@@ -117,35 +96,24 @@ namespace Logic
                         {
                             throw new Exception("PDF generation resulted in null or empty data.");
                         }
-                        Console.WriteLine($"Generated '{currentFileName}' ({pdfBytes.Length} bytes).");
-
-                        // 2. Send PDF
-                        Console.WriteLine($"Sending '{currentFileName}' to LPR...");
-                        await lprClient.SendPrintJobAsync(pdfBytes, currentFileName);
-                        successCount++;
-                        Console.WriteLine($"Successfully sent '{currentFileName}'.");
+                        Console.WriteLine($"PDF generated successfully ({pdfBytes.Length} bytes).");
                     }
+
+                    successCount++;
                 }
                 catch (Exception ex)
                 {
-                    string errorMsg = $"Failed file {i + 1} ('{currentFileName}'): {ex.Message}";
-                    Console.WriteLine($"ERROR: {errorMsg}");
-                    errorMessages.AppendLine(errorMsg);
+                    string errorMessage = $"Error processing file {i + 1}: {ex.Message}";
+                    Console.WriteLine(errorMessage);
+                    errorMessages.AppendLine(errorMessage);
                 }
             }
 
-            Console.WriteLine($"\nBatch print job finished. Successful: {successCount}/{numberOfFiles}.");
+            string finalMessage = successCount == numberOfFiles
+                ? "All files processed successfully."
+                : $"Processed {successCount} of {numberOfFiles} files. Errors: {errorMessages}";
 
-            bool overallSuccess = successCount == numberOfFiles;
-            string finalMessage = overallSuccess
-                ? "Batch print job completed successfully."
-                : $"Batch print job completed with {numberOfFiles - successCount} failure(s). See details.";
-
-            string detailedMessage = errorMessages.Length > 0
-               ? $"{finalMessage} Errors: {errorMessages.ToString()}"
-               : finalMessage;
-
-            return (overallSuccess, successCount, numberOfFiles, detailedMessage);
+            return (successCount == numberOfFiles, successCount, numberOfFiles, finalMessage);
         }
 
         // --- Keep Utility Methods ---
@@ -168,29 +136,6 @@ namespace Logic
                 "KB" => bytes / 1024.0,
                 _ => bytes
             };
-        }
-
-        public static long EstimateSize(int pages, int sizePerPage, string byteUnit)
-        {
-            try
-            {
-                int targetPageSizeBytes = ConvertToBytes(sizePerPage, byteUnit);
-                if (pages <= 0) return 0;
-
-                // Create a temporary generator instance for estimation
-                var tempPdfGenerator = new PDFGenerator(pages, targetPageSizeBytes);
-                return tempPdfGenerator.EstimatedTotalSizeBytes;
-            }
-            catch (ArgumentException argEx)
-            {
-                Console.WriteLine($"Error during size estimation (Input: {pages}p, {sizePerPage}{byteUnit}): {argEx.Message}");
-                return -1;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Unexpected error during size estimation: {ex.ToString()}");
-                return -1;
-            }
         }
     }
 }
