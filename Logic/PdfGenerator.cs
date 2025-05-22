@@ -67,10 +67,16 @@ namespace Logic
                     {
                         byte[] bitmapData = page.GetBitmapData();
                         
-                        // Create XImage from raw bitmap data
-                        using (var ms = new MemoryStream(bitmapData))
+                        // Create a BMP header for the bitmap data
+                        using (var ms = new MemoryStream())
                         {
-                            // Create XImage with raw bitmap data
+                            // Write BMP header
+                            WriteBmpHeader(ms, page.Width, page.Height);
+                            // Write bitmap data
+                            ms.Write(bitmapData, 0, bitmapData.Length);
+                            ms.Position = 0;
+
+                            // Create XImage from BMP data
                             var image = XImage.FromStream(() => ms);
 
                             // Calculate scaling to fit page width
@@ -113,6 +119,32 @@ namespace Logic
                 Console.WriteLine($"Error during PDF generation: {ex.Message}");
                 throw;
             }
+        }
+
+        private void WriteBmpHeader(Stream stream, int width, int height)
+        {
+            using var writer = new BinaryWriter(stream);
+            
+            // BMP Header (14 bytes)
+            writer.Write((byte)'B');
+            writer.Write((byte)'M');
+            writer.Write(54 + (width * height * 3)); // File size
+            writer.Write((short)0); // Reserved
+            writer.Write((short)0); // Reserved
+            writer.Write(54); // Offset to pixel data
+
+            // DIB Header (40 bytes)
+            writer.Write(40); // Header size
+            writer.Write(width); // Width
+            writer.Write(height); // Height
+            writer.Write((short)1); // Planes
+            writer.Write((short)24); // Bits per pixel
+            writer.Write(0); // Compression
+            writer.Write(width * height * 3); // Image size
+            writer.Write(0); // X pixels per meter
+            writer.Write(0); // Y pixels per meter
+            writer.Write(0); // Colors in color table
+            writer.Write(0); // Important color count
         }
 
         public async Task<string> GenerateAndSaveLocally()
