@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 defineProps<{
     progress: number
     title: string
+    currentStage?: string
 }>()
 </script>
 
@@ -25,6 +26,9 @@ defineProps<{
                     <div class="h-full bg-accent rounded-full transition-all duration-500 ease-out"
                         :style="{ width: `${progress}%` }"></div>
                 </div>
+            </div>
+            <div v-if="currentStage" class="text-xs text-muted-foreground mt-1">
+                {{ currentStage }}
             </div>
         </div>
         <div class="flex items-center">

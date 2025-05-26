@@ -116,13 +116,21 @@ namespace Logic
                             throw new Exception("PDF generation resulted in null or empty data.");
                         }
                         Console.WriteLine($"PDF generated successfully ({pdfBytes.Length} bytes).");
+
+                        // Send to printer using LprClient
+                        bool printSuccess = await lprClient.SendPrintJobAsync(pdfBytes, currentFileName);
+                        if (!printSuccess)
+                        {
+                            throw new Exception("Failed to send print job to printer.");
+                        }
+                        Console.WriteLine($"PDF sent to printer successfully.");
+
+                        successCount++;
                     }
                     finally
                     {
                         memoryStream.Dispose();
                     }
-
-                    successCount++;
                 }
                 catch (Exception ex)
                 {

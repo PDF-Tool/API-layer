@@ -46,14 +46,31 @@ function getRandomInt(min: number, max: number) {
 <template>
     <div class="flex flex-col gap-4">
         <div class="grid w-full items-center gap-2">
+            <Label for="mode">Generation Mode
+                <Info text="Select whether to generate a single document or multiple documents." />
+            </Label>
+            <DropdownMenu>
+                <DropdownMenuTrigger as-child>
+                    <Button class="min-w-[120px] select-none">
+                        {{ formData.Mode === 'single' ? 'Single Document' : 'Multiple Documents' }}
+                        <span class="icon-[material-symbols--arrow-drop-down-rounded] text-xl"></span>
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                    <DropdownMenuRadioGroup v-model="formData.Mode">
+                        <DropdownMenuRadioItem value="single">Single Document</DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value="batch">Multiple Documents</DropdownMenuRadioItem>
+                    </DropdownMenuRadioGroup>
+                </DropdownMenuContent>
+            </DropdownMenu>
+        </div>
+        <div class="grid w-full items-center gap-2" v-if="formData.Mode === 'batch'">
             <Label for="pages">Amount of documents
-                <Info
-                    text="Select the amount of bytes per page in the PDF document, Select in the dropdown-menu in which size this needs to be." />
+                <Info text="Select the amount of documents to generate." />
             </Label>
             <Input type="number" v-model="formData.NumberOfFiles" name="numberOfFiles" min="1"
                 placeholder="Select amount of documents..." />
         </div>
-
         <div class="grid w-full items-center gap-2">
             <Label>Size per page (random range)
                 <Info

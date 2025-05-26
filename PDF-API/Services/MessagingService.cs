@@ -162,6 +162,15 @@ public class MessagingService : IAsyncDisposable
         return BroadcastMessage(failed);
     }
 
+    public Task<ProcessStatus> GetProcessStatus(string processId)
+    {
+        if (ActiveProcesses.TryGetValue(processId, out var process))
+        {
+            return Task.FromResult(ProcessStatus.Active);
+        }
+        return Task.FromResult(ProcessStatus.Completed);
+    }
+
     public ValueTask DisposeAsync()
     {
         // No resources to dispose
