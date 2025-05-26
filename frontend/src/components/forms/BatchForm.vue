@@ -73,6 +73,7 @@ const canCreateBatchPdf = computed(() => {
             </Label>
             <Input type="text" name="Host" v-model="batchFormData.Host" placeholder="Select host address..." />
         </div>
-        <Button :disabled="!canCreateBatchPdf" @click="createAndPrintBatchPdf">Generate Batch PDFs</Button>
+        <Button :disabled="!canCreateBatchPdf" @click="createAndPrintBatchPdf(batchFormData)">Generate Batch
+            PDFs</Button>
     </div>
 </template>
