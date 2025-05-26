@@ -24,13 +24,21 @@ public class MessagingService : IAsyncDisposable
 
     public async Task<string?> TryAddUser(IConnectionAdapter connection, string name)
     {
-        if (!TryAddUser(name, connection))
+        string connectionKey = name;
+        int counter = 1;
+
+        while (Connections.ContainsKey(connectionKey) && counter < 100) // Limit to prevent infinite loops
         {
-            return $"Name '{name}' already taken";
+            connectionKey = $"{name}_{counter}";
+            counter++;
         }
 
+        // Store the connection with the potentially modified key
+        Connections.TryAdd(connectionKey, connection);
+
+        // Use the original name for the user connected message
         var userConnected = new UserConnected(name, GetTransport(connection));
-        var everyoneElse = Connections.Where(x => x.Key != name).Select(x => x.Value);
+        var everyoneElse = Connections.Where(x => x.Key != connectionKey).Select(x => x.Value);
         await BroadcastMessage(userConnected, everyoneElse);
 
         if (ActiveProcesses.Count > 0)

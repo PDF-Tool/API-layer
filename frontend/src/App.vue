@@ -11,11 +11,25 @@ import { Toaster } from 'vue-sonner'
 const websocketStore = useWebSocketStore()
 const isConnecting = ref(false)
 
-
+function connectWebsocket(name: string) {
+  websocketStore.connect(name)
+  isConnecting.value = true
+}
 
 onMounted(() => {
-  websocketStore.connect("Canon" + Math.floor(Math.random() * 1000))
-  isConnecting.value = true
+  let savedUsername = localStorage.getItem('canon-username')
+
+  if (!savedUsername) {
+    savedUsername = prompt('Please enter your username:')
+
+    if (!savedUsername?.trim()) {
+      savedUsername = "Canon" + Math.floor(Math.random() * 1000)
+    }
+
+    localStorage.setItem('canon-username', savedUsername)
+  }
+
+  connectWebsocket(savedUsername)
 })
 </script>
 
