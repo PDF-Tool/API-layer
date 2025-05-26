@@ -66,17 +66,12 @@ namespace PDF_API.Controllers
                 return StatusCode(500, new GenerateStartResponse { Status = false, Message = "LPR Host or Queue not configured on the server." });
             }
 
-            // 3. Estimate Size (Optional but good for initial response)
-            long estimatedSize = APIController.EstimateSize(pages, sizePerPage, byteUnit);
-            double estimatedSizeConverted = estimatedSize >= 0 ? APIController.ConvertBytesToUnit(estimatedSize, byteUnit) : 0;
-
-            // 4. Prepare Initial Response & Start Background Task
+            // 3. Prepare Initial Response & Start Background Task
             string processId = Guid.NewGuid().ToString();
-            var startResponse = new GenerateStartResponse // Reuse existing response model
+            var startResponse = new GenerateStartResponse
             {
                 Status = true,
-                ProcessId = processId, // Include ProcessId in response
-                Data = new GenerateStartData { EstimatedSize = (long)Math.Ceiling(estimatedSizeConverted), ByteUnit = byteUnit },
+                ProcessId = processId,
                 Message = "Print job accepted. Processing in background."
             };
 
@@ -85,7 +80,7 @@ namespace PDF_API.Controllers
             {
                 { "action", "GenerateAndPrint" },
                 { "pages", pages }, { "sizePerPage", sizePerPage }, { "byteUnit", byteUnit },
-                { "lprHost", lprHost }, { "lprQueue", lprQueue } // Include target printer info
+                { "lprHost", lprHost }, { "lprQueue", lprQueue }
             });
 
             // Run the actual generation and printing in the background
@@ -158,34 +153,33 @@ namespace PDF_API.Controllers
             // 2. Get LPR Configuration
             string lprHost = request.Host;
             string lprQueue = "myque";
-            if (!int.TryParse(":", out int lprPort)) { lprPort = 515; }
+            if (!int.TryParse(":", out int lprPort))
+            {
+                lprPort = 515; // Default LPR port
+            }
 
             if (string.IsNullOrWhiteSpace(lprHost) || string.IsNullOrWhiteSpace(lprQueue))
             {
                 return StatusCode(500, new BatchGenerateStartResponse { Status = false, Message = "LPR Host or Queue not configured on the server." });
             }
 
-            // 3. Estimate Size (Optional)
-            long estimatedSizePerFile = APIController.EstimateSize(pagesPerFile, sizePerPage, byteUnit);
-            double estimatedSizePerFileConverted = estimatedSizePerFile >= 0 ? APIController.ConvertBytesToUnit(estimatedSizePerFile, byteUnit) : 0;
-
-            // 4. Prepare Initial Response & Start Background Task
+            // 3. Prepare Initial Response & Start Background Task
             string processId = Guid.NewGuid().ToString();
-            var startResponse = new BatchGenerateStartResponse // Reuse existing response model
+            var startResponse = new BatchGenerateStartResponse
             {
                 Status = true,
                 ProcessId = processId,
-                Data = new BatchGenerateStartData { EstimatedSizePerFile = (long)Math.Ceiling(estimatedSizePerFileConverted), ByteUnit = byteUnit, NumberOfFiles = numberOfFiles, PagesPerFile = pagesPerFile },
+                Data = new BatchGenerateStartData { NumberOfFiles = numberOfFiles, PagesPerFile = pagesPerFile },
                 Message = "Batch print job accepted. Processing in background."
             };
 
             // Notify client
             await _messagingService.StartProcess(processId, "Batch PDF Print Job", request.User ?? "Anonymous", new Dictionary<string, object>
-             {
-                 { "action", "GenerateBatchAndPrint" },
-                 { "numberOfFiles", numberOfFiles }, { "pagesPerFile", pagesPerFile }, { "sizePerPage", sizePerPage }, { "byteUnit", byteUnit },
-                 { "lprHost", lprHost }, { "lprQueue", lprQueue }
-             });
+            {
+                { "action", "GenerateBatchAndPrint" },
+                { "numberOfFiles", numberOfFiles }, { "pagesPerFile", pagesPerFile }, { "sizePerPage", sizePerPage }, { "byteUnit", byteUnit },
+                { "lprHost", lprHost }, { "lprQueue", lprQueue }
+            });
 
             // Run batch in background
             _ = Task.Run(async () =>

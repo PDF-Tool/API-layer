@@ -1,29 +1,76 @@
 using System;
+using System.Drawing;
+using System.Drawing.Imaging;
+using System.IO;
 
 namespace Logic
 {
-    public class PDFPage
+    public class PDFPage : IDisposable
     {
-        private PDFContent _content;
-        private int _targetContentSize; // Target size contribution for generating this page's content
+        private readonly int _targetSizeBytes;
+        private readonly byte[] _bitmapData;
+        private bool _disposed;
 
-        public PDFPage(int targetContentSizePerPage)
+        public PDFPage(int targetSizeBytes)
         {
-            // Store the target size used for generation, although estimation uses actual size later
-            _targetContentSize = Math.Max(1, targetContentSizePerPage); // Ensure at least 1
-            _content = new PDFContent(_targetContentSize);
+            _targetSizeBytes = targetSizeBytes;
+            int pixels = Math.Max(1, targetSizeBytes / 3);
+            int width = Math.Max(1, (int)Math.Sqrt(pixels));
+            int height = Math.Max(1, pixels / width);
+            _bitmapData = new byte[width * height * 3];
+            new Random().NextBytes(_bitmapData);
         }
 
-        public byte[] GetContentImageData()
+        public byte[] GetUncompressedPngBytes()
         {
-            return _content.GetImageData();
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(PDFPage));
+
+            int pixels = Math.Max(1, _targetSizeBytes / 3);
+            int width = Math.Max(1, (int)Math.Sqrt(pixels));
+            int height = Math.Max(1, pixels / width);
+
+            using var bmp = new Bitmap(width, height, PixelFormat.Format24bppRgb);
+            var rect = new Rectangle(0, 0, width, height);
+            var bmpData = bmp.LockBits(rect, ImageLockMode.WriteOnly, PixelFormat.Format24bppRgb);
+            try
+            {
+                System.Runtime.InteropServices.Marshal.Copy(_bitmapData, 0, bmpData.Scan0, _bitmapData.Length);
+            }
+            finally
+            {
+                bmp.UnlockBits(bmpData);
+            }
+
+            using var ms = new MemoryStream();
+            var encoder = GetPngEncoder();
+            var encoderParams = new EncoderParameters(1);
+            encoderParams.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Compression, 0L);
+            bmp.Save(ms, encoder, encoderParams);
+            return ms.ToArray();
         }
 
-        public long GetActualContentImageDataSize()
+        private static ImageCodecInfo GetPngEncoder()
         {
-            return _content.ActualImageDataSize;
+            var encoders = ImageCodecInfo.GetImageEncoders();
+            foreach (var enc in encoders)
+                if (enc.FormatID == ImageFormat.Png.Guid)
+                    return enc;
+            throw new Exception("PNG encoder not found");
         }
 
-        public int TargetContentSize => _targetContentSize; // Expose if needed
+        public void Dispose()
+        {
+            if (!_disposed)
+            {
+                _disposed = true;
+                GC.SuppressFinalize(this);
+            }
+        }
+
+        ~PDFPage()
+        {
+            Dispose();
+        }
     }
 }
